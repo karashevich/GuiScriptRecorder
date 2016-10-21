@@ -1,0 +1,36 @@
+<idea-plugin version="2">
+  <id>GuiRecorderPlugin</id>
+  <name>GUI Recorder</name>
+  <version>0.1</version>
+  <vendor email="sergey.karashevich@jetbrains.com" url="http://jetbrains.com">JetBrains</vendor>
+
+  <description>Plugin helps to generate GUI Tests for IntelliJ based IDEs</description>
+
+  <change-notes> </change-notes>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/build_number_ranges.html for description -->
+  <idea-version since-build="162.0"/>
+
+  <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+       on how to target different products -->
+  <!-- uncomment to enable plugin in all products
+  -->
+
+  <extensions defaultExtensionNs="com.intellij">
+    <!-- Add your extensions here -->
+  </extensions>
+
+  <actions>
+    <action class="actions.StartRecAction" id="gui.recoder.startRecAction" description="Start GUI Recorder" text="Start GUI Recorder"/>
+    <action class="actions.StopRecAction" id="gui.recoder.stopRecAction" description="Stop GUI Recorder" text="Stop GUI Recorder"/>
+    <action class="actions.PerformScriptAction" id="gui.recoder.PerformScriptAction" description="Perform Script Action" text="Perform Script Action"/>
+  </actions>
+
+  <application-components>
+    <component>
+      <interface-class>components.GuiRecorderComponent</interface-class>
+      <implementation-class>components.GuiRecorderComponent</implementation-class>
+    </component>
+  </application-components>
+
+</idea-plugin>
