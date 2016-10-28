@@ -2,7 +2,8 @@ package actions
 
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import logic.KotlinKompilerUtil
+import com.intellij.openapi.diagnostic.Logger
+import compile.KotlinCompileUtil
 
 /**
  * @author Sergey Karashevich
@@ -10,10 +11,13 @@ import logic.KotlinKompilerUtil
 
 class PerformScriptAction: AnAction(){
 
-    override fun actionPerformed(p0: AnActionEvent?) {
-        val demoCode = "println(\"Demo\")"
+    companion object{
+        val LOG = Logger.getInstance(PerformScriptAction::class.java)
+    }
 
-        KotlinKompilerUtil.kompileAndEval(demoCode)
+    override fun actionPerformed(p0: AnActionEvent?) {
+        LOG.info("Compile and evaluate current test")
+        KotlinCompileUtil.compileAndEvalCurrentTest()
     }
 
 }

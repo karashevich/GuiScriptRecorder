@@ -7,6 +7,7 @@ import com.intellij.openapi.components.ApplicationComponent
  */
 class GuiRecorderComponent: ApplicationComponent{
 
+
     override fun getComponentName() = "GuiRecorderComponent"
 
     override fun disposeComponent() {
@@ -14,6 +15,9 @@ class GuiRecorderComponent: ApplicationComponent{
     }
 
     override fun initComponent() {
+//        Logger.setFactory(LoggerFactory::class.java)
+//        Logger.setFactory(LoggerFactory::class.java)
+//        LOG.info("Gui script recorder logger factory has been set")
     }
 
 }
