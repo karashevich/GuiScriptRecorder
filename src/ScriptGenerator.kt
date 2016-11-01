@@ -1,3 +1,4 @@
+import ScriptGenerator.scriptBuffer
 import com.intellij.testGuiFramework.framework.GuiTestUtil
 import com.intellij.ui.components.JBList
 import org.fest.swing.core.BasicRobot
@@ -11,6 +12,14 @@ import javax.swing.*
  * @author Sergey Karashevich
  */
 object ScriptGenerator {
+
+    val scriptBuffer = StringBuilder()
+
+    fun getScriptBuffer(): String {
+        if (scriptBuffer.length > 0)
+            scriptBuffer.appendln("}")  //close context
+        return scriptBuffer.toString()
+    }
 
     var currentContextComponent: Component? = null
     private var currentContext = Contexts()
@@ -93,6 +102,7 @@ object ScriptGenerator {
 private object Writer{
     fun write(str: String) {
         println(str)
+        scriptBuffer.appendln(str)
     }
 }
 

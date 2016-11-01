@@ -29,6 +29,8 @@ object KotlinCompileUtil {
 
     fun compileAndEvalCurrentTest() = compileAndEval(getCurrentTestText())
 
+    fun compileAndEvalScriptBuffer() = compileAndEval(ScriptGenerator.getScriptBuffer())
+
     private fun getCurrentTestText() = StreamUtil.readText(GlobalActionRecorder.javaClass.getResourceAsStream("CurrentTest.ktt"), CharsetToolkit.UTF8)
 
     fun getKotlinLibUrls(): List<URL> {
@@ -40,6 +42,7 @@ object KotlinCompileUtil {
         urls.add(classLoader.getResource("libxx/kotlin-daemon-client.jar"))
         urls.add(classLoader.getResource("libxx/kotlin-runtime.jar"))
         urls.add(classLoader.getResource("libxx/kotlin-reflect.jar"))
+        urls.add(classLoader.getResource("libxx/kotlin-script-runtime.jar"))
         urls += getUrlFromUrlClassloader("junit")
 
         return urls

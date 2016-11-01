@@ -36,7 +36,7 @@ object GlobalActionRecorder {
 
     private val globalAwtProcessor = object : IdeEventQueue.EventDispatcher {
 
-        override fun dispatch(awtEvent: AWTEvent?): Boolean {
+        override fun dispatch(awtEvent: AWTEvent): Boolean {
             when (awtEvent) {
                 is MouseEvent -> EventProcessor.processMouseEvent(awtEvent)
                 is KeyEvent -> EventProcessor.processKeyBoardEvent(awtEvent)
