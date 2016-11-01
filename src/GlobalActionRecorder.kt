@@ -21,6 +21,7 @@ object GlobalActionRecorder {
 
     private val globalActionListener = object : AnActionListener {
         override fun beforeActionPerformed(p0: AnAction?, p1: DataContext?, p2: AnActionEvent?) {
+            EventProcessor.processActionEvent(p2)
             LOG.info("IDEA is going to perform action ${p0!!.templatePresentation.text}")
         }
 
@@ -38,7 +39,7 @@ object GlobalActionRecorder {
         override fun dispatch(awtEvent: AWTEvent?): Boolean {
             when (awtEvent) {
                 is MouseEvent -> EventProcessor.processMouseEvent(awtEvent)
-                is KeyEvent -> LOG.info("Key event: ${awtEvent.toString()}")
+                is KeyEvent -> EventProcessor.processKeyBoardEvent(awtEvent)
             }
             return false
         }

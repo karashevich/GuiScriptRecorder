@@ -1,8 +1,10 @@
 import com.intellij.testGuiFramework.framework.GuiTestUtil
 import com.intellij.ui.components.JBList
 import org.fest.swing.core.BasicRobot
+import ui.KeyUtil
 import java.awt.Component
 import java.awt.Container
+import java.awt.event.KeyEvent
 import javax.swing.*
 
 /**
@@ -20,23 +22,40 @@ object ScriptGenerator {
 //        clickCmp(component, e)
 //    }
 
+    fun processTyping(keyChar: Char){
+        Typer.type(keyChar)
+    }
 
-    fun clickCmp(cmp: Component, itemName: String?) {
+    fun flushTyping() {
+        Typer.flushBuffer()
+    }
+
+    fun clickCmp(cmp: Component, itemName: String?, clickCount: Int) {
+        Typer.flushBuffer()
+        checkContext(cmp)
         when (cmp) {
-            is JButton -> write(Templates.findAndClickButton(cmp.text))
-            is com.intellij.ui.components.labels.ActionLink -> write(Templates.clickActionLink(cmp.text))
+            is JButton -> Writer.write(Templates.findAndClickButton(cmp.text))
+            is com.intellij.ui.components.labels.ActionLink -> Writer.write(Templates.clickActionLink(cmp.text))
             is JTextField -> {
-                val label = getLabel((currentContextComponent as Container?)!!, cmp)
-                if (label == null)
-                    write(Templates.findJTextField())
-                else
-                    write(Templates.findJTextFieldByLabel(label.text))
+                if (clickCount == 1) {
+                    val label = getLabel((currentContextComponent as Container?)!!, cmp)
+                    if (label == null)
+                        Writer.write(Templates.findJTextField())
+                    else
+                        Writer.write(Templates.findJTextFieldByLabel(label.text))
+                } else if (clickCount == 2) {
+                    val label = getLabel((currentContextComponent as Container?)!!, cmp)
+                    if (label == null)
+                        Writer.write(Templates.findJTextFieldAndDoubleClick())
+                    else
+                        Writer.write(Templates.findJTextFieldByLabelAndDoubleClick(label.text))
+                }
             }
             is JBList<*> -> {
                 if (isPopupList(cmp))
-                    write(Templates.clickPopupItem(itemName!!))
+                    Writer.write(Templates.clickPopupItem(itemName!!))
                 else
-                    write(Templates.clickListItem(itemName!!))
+                    Writer.write(Templates.clickListItem(itemName!!))
             }
         }
     }
@@ -51,28 +70,47 @@ object ScriptGenerator {
         cmp as JComponent
         if (isPopupList(cmp)) return //dont' change context for a popup menu
         if (currentContextComponent != null && !cmp.rootPane.equals(currentContextComponent)) {
-            write(currentContext.closeContext())
+            Writer.write(currentContext.closeContext())
         }
         if (currentContextComponent == null || !cmp.rootPane.equals(currentContextComponent)) {
             currentContextComponent = cmp.rootPane
             when (cmp.rootPane.parent) {
                 is JDialog -> {
                     if ((cmp.rootPane.parent as JDialog).title.equals(com.intellij.ide.IdeBundle.message("title.new.project")))
-                        write(currentContext.projectWizardContextStart())
+                        Writer.write(currentContext.projectWizardContextStart())
                     else
-                        write(currentContext.dialogContextStart((cmp.rootPane.parent as JDialog).title))
+                        Writer.write(currentContext.dialogContextStart((cmp.rootPane.parent as JDialog).title))
                 }
-                is com.intellij.openapi.wm.impl.welcomeScreen.FlatWelcomeFrame -> write(currentContext.welcomeFrameStart())
+                is com.intellij.openapi.wm.impl.welcomeScreen.FlatWelcomeFrame -> Writer.write(currentContext.welcomeFrameStart())
                 is JFrame -> println("is JFrame")
             }
 
         }
     }
 
+}
+
+private object Writer{
     fun write(str: String) {
         println(str)
     }
+}
 
+private object Typer{
+    val strBuffer = StringBuilder()
+    val rawBuffer = StringBuilder()
+
+    fun type(keyChar: Char) {
+        strBuffer.append(KeyUtil.patch(keyChar))
+        rawBuffer.append("${if(rawBuffer.length > 0) ", " else ""}\"${keyChar.toInt()}\"")
+    }
+
+    fun flushBuffer() {
+        if (strBuffer.length == 0) return
+        Writer.write("typed:[${strBuffer.length},\"${strBuffer.toString()}\", raw=\"${rawBuffer.toString()}\"]")
+        strBuffer.setLength(0)
+        rawBuffer.setLength(0)
+    }
 }
 
 //TEMPLATES
@@ -92,6 +130,8 @@ private object Templates {
 
     fun findJTextField() = "val textField = myRobot.finder().findByType(JTextField::class.java)"
     fun findJTextFieldByLabel(labelText: String) = "val textField = findTextField(\"${labelText}\").click()"
+    fun findJTextFieldAndDoubleClick() = "val textField = myRobot.finder().findByType(JTextField::class.java).doubleClick()"
+    fun findJTextFieldByLabelAndDoubleClick(labelText: String) = "val textField = findTextField(\"${labelText}\").doubleClick()"
 }
 
 

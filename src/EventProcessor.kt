@@ -1,3 +1,4 @@
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.ui.components.JBList
 import com.intellij.ui.popup.PopupFactoryImpl
@@ -6,30 +7,29 @@ import java.awt.Component
 import java.awt.Container
 import java.awt.KeyboardFocusManager
 import java.awt.Point
+import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
 import java.awt.event.MouseEvent.BUTTON1
 import java.awt.event.MouseEvent.MOUSE_PRESSED
+import javax.swing.JComponent
 import javax.swing.JFrame
 import javax.swing.SwingUtilities
 
 /**
  * @author Sergey Karashevich
  */
-object EventProcessor{
+object EventProcessor {
 
     val LOG = Logger.getInstance(EventProcessor::class.java)
 
     fun processMouseEvent(me: MouseEvent) {
 
 //        if (!(me.clickCount == 1 && me.id == MOUSE_CLICKED && me.button == BUTTON1)) return
-        if (!(me.clickCount == 1 && me.id == MOUSE_PRESSED && me.button == BUTTON1)) return
+        if (!(me.id == MOUSE_PRESSED && me.button == BUTTON1)) return
 
-            //increase highlighting component range
         var component: Component? = me.component
-
-        //Component component = FocusManager.getCurrentManager().getFocusedWindow().getComponentAt(me.getLocationOnScreen());
-
         val mousePoint = me.point
+        val clickCount = me.clickCount
 
         if (component is JFrame) {
             val layeredPane = component.layeredPane
@@ -44,16 +44,19 @@ object EventProcessor{
         }
         if (component != null) {
             //user click
-                    var itemName: String? = null
-                    val dataMap = HashMap<String, Any>()
-                    dataMap.put("Component", component)
-                    if (component is JBList<*>)
-                        itemName = getCellText((component as JBList<*>?)!!, mousePoint)
-                LOG.info("Delegate click from component:${component}")
-                ScriptGenerator.clickCmp(component, itemName)
+            var itemName: String? = null
+            val dataMap = HashMap<String, Any>()
+            dataMap.put("Component", component)
+            if (component is JBList<*>) {
+                val convertedPoint = Point(
+                        me.locationOnScreen.x - component.locationOnScreen.x,
+                        me.locationOnScreen.y - component.locationOnScreen.y)
+                itemName = getCellText((component as JBList<*>?)!!, convertedPoint)
+            }
+            LOG.info("Delegate click from component:${component}")
+            ScriptGenerator.clickCmp(component, itemName, clickCount)
         }
     }
-
 
     fun getCellText(jbList: JBList<*>, pointOnList: Point): String? {
         val index = jbList.locationToIndex(pointOnList)
@@ -67,5 +70,15 @@ object EventProcessor{
             }
         }
         return null
+    }
+
+    fun processKeyBoardEvent(keyEvent: KeyEvent) {
+        if (keyEvent.id == KeyEvent.KEY_TYPED)
+            ScriptGenerator.processTyping(keyEvent.keyChar)
+    }
+
+    fun  processActionEvent(anActionEvent: AnActionEvent?) {
+        if (anActionEvent!!.inputEvent is KeyEvent) return
+        ScriptGenerator.flushTyping()
     }
 }

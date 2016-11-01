@@ -10,6 +10,7 @@ import com.intellij.openapi.actionSystem.ToggleAction
 
 class StartStopRecAction : ToggleAction(){
 
+
     companion object{
         var state = State.STOPPED
     }
