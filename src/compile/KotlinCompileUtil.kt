@@ -1,13 +1,14 @@
 package compile
 
 import GlobalActionRecorder
+import ScriptGenerator
+import ScriptGenerator.wrapScriptWithFunDef
 import actions.PerformScriptAction
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.util.io.StreamUtil
 import com.intellij.openapi.vfs.CharsetToolkit
 import com.intellij.testGuiFramework.script.GuiTestCases
 import com.intellij.util.lang.UrlClassLoader
-import org.jetbrains.kotlin.daemon.common.CompileService
 import java.net.URL
 import java.util.*
 
@@ -15,6 +16,22 @@ import java.util.*
  * @author Sergey Karashevich
  */
 object KotlinCompileUtil {
+
+    fun compiledAndEvalWithNotifier(codeString: String, notifier: DaemonNotifier){
+        withDiffContextClassLoader {
+            withIsolatedClassLoader { isolatedKotlinLibClassLoader ->
+                val daemonCompilerCls = isolatedKotlinLibClassLoader.loadClass(DaemonCompiler::class.qualifiedName)
+                val loadClassInstance = daemonCompilerCls.getField("INSTANCE").get(null)
+
+                val daemonNotifierClass = isolatedKotlinLibClassLoader.loadClass("compile.DaemonNotifier")
+                val setNotifierMethod = daemonCompilerCls.getMethod("setNotifier", daemonNotifierClass)
+                setNotifierMethod.invoke(loadClassInstance, notifier)
+
+                val method = daemonCompilerCls.getMethod("compileAndEval", String::class.java, List::class.java, String::class.java, ClassLoader::class.java)
+                method.invoke(loadClassInstance, codeString, getAllUrls().map { it.toFile() }, GuiTestCases::class.qualifiedName, PerformScriptAction::class.java.classLoader)
+            }
+        }
+    }
 
     fun compileAndEval(codeString: String) {
         withDiffContextClassLoader {
@@ -29,7 +46,11 @@ object KotlinCompileUtil {
 
     fun compileAndEvalCurrentTest() = compileAndEval(getCurrentTestText())
 
-    fun compileAndEvalScriptBuffer() = compileAndEval(ScriptGenerator.getScriptBuffer())
+    fun compileAndEvalScriptBuffer() = compileAndEval(ScriptGenerator.getWrappedScriptBuffer())
+
+    fun compileAndEvalCode(code: String) = compileAndEval(wrapScriptWithFunDef(code))
+
+    fun compileAndEvalCodeWithNotifier(code: String, notifier: DaemonNotifier) = compiledAndEvalWithNotifier(wrapScriptWithFunDef(code), notifier)
 
     private fun getCurrentTestText() = StreamUtil.readText(GlobalActionRecorder.javaClass.getResourceAsStream("CurrentTest.ktt"), CharsetToolkit.UTF8)
 
@@ -74,3 +95,4 @@ object KotlinCompileUtil {
     @Suppress("UNCHECKED_CAST")
     fun ClassLoader.forced_urls() = ((this.javaClass.getMethod("getUrls").invoke(this) as? List<*>)!!.filter{it is URL }) as List<URL>
 }
+

@@ -1,4 +1,5 @@
 import ScriptGenerator.scriptBuffer
+import com.intellij.testGuiFramework.fixtures.newProjectWizard.NewProjectWizardFixture
 import com.intellij.testGuiFramework.framework.GuiTestUtil
 import com.intellij.ui.components.JBList
 import org.fest.swing.core.BasicRobot
@@ -15,10 +16,43 @@ object ScriptGenerator {
 
     val scriptBuffer = StringBuilder()
 
-    fun getScriptBuffer(): String {
+    fun getScriptBuffer() = scriptBuffer.toString()
+
+    fun getWrappedScriptBuffer(): String {
         if (scriptBuffer.length > 0)
             scriptBuffer.appendln("}")  //close context
-        return scriptBuffer.toString()
+        return wrapScriptWithFunDef(scriptBuffer.toString())
+//        val tmpBuffer = "val welcomeFrame = findWelcomeFrame() \n" +
+//                "with (welcomeFrame){ \n" +
+//                "ActionLinkFixture.findActionLinkByName(\"Create New Project\", robot(), this.target()).click() \n" +
+//                "} \n" +
+//                "val projectWizard = findNewProjectWizard() \n" +
+//                "with (projectWizard){ \n" +
+//                "selectProjectType(\"Java\") \n" +
+//                "GuiTestUtil.findAndClickButton(this, \"Next\") \n" +
+//                "GuiTestUtil.findAndClickButton(this, \"Next\") \n" +
+//                "}\n"
+//        val wrapScriptWithFunDef = wrapScriptWithFunDef(tmpBuffer)
+//        println("SCRIPT TO BE PERFORMED: \n $wrapScriptWithFunDef")
+//        return wrapScriptWithFunDef
+    }
+
+    fun wrapScriptWithFunDef(body: String): String {
+        val import = "import com.intellij.testGuiFramework.framework.* \n" +
+                "import com.intellij.testGuiFramework.fixtures.* \n " +
+                "import com.intellij.testGuiFramework.fixtures.newProjectWizard.NewProjectWizardFixture \n" +
+                "import org.fest.swing.core.Robot \n" +
+                "import java.awt.Component \n" +
+                "import com.intellij.openapi.application.ApplicationManager"
+        val injection = "fun clickListItem(itemName: String, robot: Robot, component: Component) {(this as NewProjectWizardFixture).selectProjectType(itemName) }"
+        val testFun = "fun testGitImport(){"
+        val postfix = "} \n setUp() \n" +
+                "ApplicationManager.getApplication().executeOnPooledThread { testGitImport() }"
+        return "$import \n " +
+                "$injection \n " +
+                "$testFun \n" +
+                "$body \n " +
+                "$postfix"
     }
 
     var currentContextComponent: Component? = null
@@ -117,7 +151,7 @@ private object Typer{
 
     fun flushBuffer() {
         if (strBuffer.length == 0) return
-        Writer.write("typed:[${strBuffer.length},\"${strBuffer.toString()}\", raw=\"${rawBuffer.toString()}\"]")
+        Writer.write("//typed:[${strBuffer.length},\"${strBuffer.toString()}\", raw=\"${rawBuffer.toString()}\"]")
         strBuffer.setLength(0)
         rawBuffer.setLength(0)
     }
@@ -178,3 +212,4 @@ private class Contexts() {
 
     fun closeContext() = "}"
 }
+

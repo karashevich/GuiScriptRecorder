@@ -17,7 +17,7 @@ class PerformScriptAction: AnAction(){
 
     override fun actionPerformed(p0: AnActionEvent?) {
         LOG.info("Compile and evaluate current script buffer")
-        KotlinCompileUtil.compileAndEvalCurrentTest()
+        KotlinCompileUtil.compileAndEvalScriptBuffer()
     }
 
 }

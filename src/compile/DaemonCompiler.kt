@@ -18,6 +18,7 @@ import org.jetbrains.kotlin.daemon.common.DaemonOptions
 import org.jetbrains.kotlin.daemon.common.configureDaemonJVMOptions
 import java.io.File
 import java.net.URL
+import java.util.*
 
 /**
  * @author Sergey Karashevich
@@ -26,13 +27,19 @@ import java.net.URL
 
 object DaemonCompiler {
 
+    private var myNotifier: DaemonNotifier? = null //could be only one listener
+
+    fun setNotifier(extNotifier: DaemonNotifier) {
+        myNotifier = extNotifier
+    }
+
     val compilerId by lazy(LazyThreadSafetyMode.NONE) {
         CompilerId.makeCompilerId(getKotlinLibUrls().map{ it -> it.toFile() } as List<File>)
     }
 
     //load via reflection from PerformActionScript.kt
     @Suppress("unused")
-    fun compileAndEval(code: String, classpathFromClassloader: List<File>,  templateClassName: String, evaluatorClassLoader: ClassLoader?) {
+    fun compileAndEval(code: String, classpathFromClassloader: List<File>, templateClassName: String, evaluatorClassLoader: ClassLoader?) {
         withDaemon { daemon ->
             withDisposable { disposable ->
                 val repl = KotlinRemoteReplCompiler(disposable, daemon!!, null, CompileService.TargetPlatform.JVM,
@@ -46,20 +53,23 @@ object DaemonCompiler {
                 doReplWithLocalEval(repl, localEvaluator, code)
             }
         }
-
     }
 
 
     private fun doReplWithLocalEval(repl: KotlinRemoteReplCompiler, localEvaluator: GenericReplCompiledEvaluator, code: String) {
 
+        val startTime = Date().time
+        myNotifier!!.eventDispatched("Compilation started...")
+
         val codeLine = ReplCodeLine(0, code)
         val compileResult = repl.compile(codeLine, emptyList())
+        myNotifier!!.eventDispatched("Compilation completed.")
         val res1c = compileResult as? ReplCompileResult.CompiledClasses
         TestCase.assertNotNull("Unexpected compile result: $compileResult", res1c)
 
+        myNotifier!!.eventDispatched("Evaluation started.")
         val evalResult = localEvaluator.eval(codeLine, emptyList(), res1c!!.classes, res1c.hasResult, res1c.newClasspath)
         val checkEvalResult = evalResult as? ReplEvalResult.UnitResult
-        TestCase.assertNotNull("Unexpected eval result: $evalResult", checkEvalResult)
     }
 
 
@@ -69,12 +79,10 @@ object DaemonCompiler {
             val daemonJVMOptions = configureDaemonJVMOptions(inheritMemoryLimits = false, inheritAdditionalProperties = false)
             val daemon: CompileService? = KotlinCompilerClient.connectToCompileService(compilerId, flagFile, daemonJVMOptions, daemonOptions, DaemonReportingTargets(out = System.err), autostart = true)
             assertNotNull("failed to connect daemon", daemon)
-
             body(daemon!!)
         }
     }
 }
-
 
 fun getKotlinLibUrls(): List<URL> {
     val url1 = DaemonCompiler::class.java.classLoader.getResource("libxx/kotlin-compiler.jar")
@@ -109,4 +117,10 @@ internal inline fun withFlagFile(prefix: String, suffix: String? = null, body: (
     } finally {
         file.delete()
     }
+}
+
+interface DaemonNotifier : EventListener{
+
+    fun eventDispatched(event: String)
+
 }

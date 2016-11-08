@@ -21,7 +21,10 @@
   </extensions>
 
   <actions>
-    <action class="actions.StartStopRecAction" id="gui.recorder.startStopRecAction" description="Start/Stop GUI Recorder" text="Start/Stop GUI Recorder"/>
+    <action class="actions.StartStopRecAction" id="gui.recorder.startStopRecAction" description="Start/Stop GUI Recorder" text="Start/Stop GUI Recorder">
+      <!--TODO: add shortcuts for Windows and Linux-->
+      <keyboard-shortcut first-keystroke="control alt meta S" keymap="$default"/>
+    </action>
     <action class="actions.PerformScriptAction" id="gui.recorder.PerformScriptAction" description="Perform Script Action" text="Perform Script Action"/>
     <action class="actions.ShowLightEditorWindowAction" id="gui.recorder.ShowLightEditorWindowAction" description="Show GUI script editor" text="Show GUI script editor"/>
     <action class="actions.UiDropperAction" id="gui.recorder.UiDropperAction" description="UI Dropper may find classes for a UI debugging on the fly" text="UI Dropper"/>
