@@ -11,20 +11,20 @@ import com.intellij.testGuiFramework.script.GuiTestCases
 import com.intellij.util.lang.UrlClassLoader
 import java.net.URL
 import java.util.*
+import java.util.function.Consumer
 
 /**
  * @author Sergey Karashevich
  */
 object KotlinCompileUtil {
 
-    fun compiledAndEvalWithNotifier(codeString: String, notifier: DaemonNotifier){
+    fun compiledAndEvalWithNotifier(codeString: String, notifier: Consumer<String>){
         withDiffContextClassLoader {
             withIsolatedClassLoader { isolatedKotlinLibClassLoader ->
                 val daemonCompilerCls = isolatedKotlinLibClassLoader.loadClass(DaemonCompiler::class.qualifiedName)
                 val loadClassInstance = daemonCompilerCls.getField("INSTANCE").get(null)
 
-                val daemonNotifierClass = isolatedKotlinLibClassLoader.loadClass("compile.DaemonNotifier")
-                val setNotifierMethod = daemonCompilerCls.getMethod("setNotifier", daemonNotifierClass)
+                val setNotifierMethod = daemonCompilerCls.getMethod("setNotifier", java.util.function.Consumer::class.java)
                 setNotifierMethod.invoke(loadClassInstance, notifier)
 
                 val method = daemonCompilerCls.getMethod("compileAndEval", String::class.java, List::class.java, String::class.java, ClassLoader::class.java)
@@ -50,7 +50,7 @@ object KotlinCompileUtil {
 
     fun compileAndEvalCode(code: String) = compileAndEval(wrapScriptWithFunDef(code))
 
-    fun compileAndEvalCodeWithNotifier(code: String, notifier: DaemonNotifier) = compiledAndEvalWithNotifier(wrapScriptWithFunDef(code), notifier)
+    fun compileAndEvalCodeWithNotifier(code: String, notifier: Consumer<String>) = compiledAndEvalWithNotifier(wrapScriptWithFunDef(code), notifier)
 
     private fun getCurrentTestText() = StreamUtil.readText(GlobalActionRecorder.javaClass.getResourceAsStream("CurrentTest.ktt"), CharsetToolkit.UTF8)
 

@@ -19,6 +19,7 @@ import org.jetbrains.kotlin.daemon.common.configureDaemonJVMOptions
 import java.io.File
 import java.net.URL
 import java.util.*
+import java.util.function.Consumer
 
 /**
  * @author Sergey Karashevich
@@ -27,9 +28,9 @@ import java.util.*
 
 object DaemonCompiler {
 
-    private var myNotifier: DaemonNotifier? = null //could be only one listener
+    private var myNotifier: Consumer<String>? = null
 
-    fun setNotifier(extNotifier: DaemonNotifier) {
+    fun setNotifier(extNotifier: Consumer<String>) {
         myNotifier = extNotifier
     }
 
@@ -40,6 +41,7 @@ object DaemonCompiler {
     //load via reflection from PerformActionScript.kt
     @Suppress("unused")
     fun compileAndEval(code: String, classpathFromClassloader: List<File>, templateClassName: String, evaluatorClassLoader: ClassLoader?) {
+        status("<long>Connecting to kotlin compile daemon")
         withDaemon { daemon ->
             withDisposable { disposable ->
                 val repl = KotlinRemoteReplCompiler(disposable, daemon!!, null, CompileService.TargetPlatform.JVM,
@@ -59,15 +61,16 @@ object DaemonCompiler {
     private fun doReplWithLocalEval(repl: KotlinRemoteReplCompiler, localEvaluator: GenericReplCompiledEvaluator, code: String) {
 
         val startTime = Date().time
-        myNotifier!!.eventDispatched("Compilation started...")
+        status("<long>Compilation started...")
 
         val codeLine = ReplCodeLine(0, code)
         val compileResult = repl.compile(codeLine, emptyList())
-        myNotifier!!.eventDispatched("Compilation completed.")
+        status("Compilation completed (${(Date().time - startTime)}ms)")
         val res1c = compileResult as? ReplCompileResult.CompiledClasses
+        if (res1c == null ) status("Compile error: see details in idea.log")
         TestCase.assertNotNull("Unexpected compile result: $compileResult", res1c)
 
-        myNotifier!!.eventDispatched("Evaluation started.")
+        status("Evaluation started")
         val evalResult = localEvaluator.eval(codeLine, emptyList(), res1c!!.classes, res1c.hasResult, res1c.newClasspath)
         val checkEvalResult = evalResult as? ReplEvalResult.UnitResult
     }
@@ -82,6 +85,8 @@ object DaemonCompiler {
             body(daemon!!)
         }
     }
+
+    fun status(str: String) = myNotifier!!.accept(str)
 }
 
 fun getKotlinLibUrls(): List<URL> {
@@ -91,6 +96,8 @@ fun getKotlinLibUrls(): List<URL> {
 }
 
 fun getRunFilesPath() = DaemonCompiler::class.java.classLoader.getResource("compile/DaemonCompiler.class").toFile()!!.parentFile
+
+
 
 
 internal inline fun withDisposable(body: (Disposable) -> Unit) {
@@ -119,8 +126,3 @@ internal inline fun withFlagFile(prefix: String, suffix: String? = null, body: (
     }
 }
 
-interface DaemonNotifier : EventListener{
-
-    fun eventDispatched(event: String)
-
-}

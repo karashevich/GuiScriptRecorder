@@ -1,12 +1,15 @@
 package ui
 
-import compile.DaemonNotifier
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.util.ui.EdtInvocationManager
 import compile.KotlinCompileUtil
 import java.awt.Container
 import java.awt.Dimension
 import java.awt.event.ActionEvent
+import java.util.function.Consumer
 import javax.swing.AbstractAction
 import javax.swing.JFrame
+import javax.swing.SwingUtilities
 
 open class GuiScriptEditorFrame() {
 
@@ -30,15 +33,27 @@ open class GuiScriptEditorFrame() {
         installRunAction()
     }
 
-    fun updateStatus(status: String) = guiScriptEditorPanel.updateStatus(status)
+    fun updateStatus(status: String) {
+        val statusHandler: (String) -> Unit = { status ->
+            if (status.startsWith("<long>")) {
+                guiScriptEditorPanel.updateStatusWithProgress(status.substring(6))
+            } else {
+                guiScriptEditorPanel.stopProgress()
+                guiScriptEditorPanel.updateStatus(status)
+            }
+        }
+
+        if (EdtInvocationManager.getInstance().isEventDispatchThread) statusHandler.invoke(status)
+        else SwingUtilities.invokeAndWait { statusHandler.invoke(status) }
+    }
+
     fun updateStatusWithProgress(status: String) = guiScriptEditorPanel.updateStatusWithProgress(status)
     fun stopProgress() = guiScriptEditorPanel.stopProgress()
 
-    val myNotifier = object : DaemonNotifier {
-        override fun eventDispatched(event: String) {
-            updateStatus(event)
+    val myNotifier: Consumer<String> = object : Consumer<String> {
+        override fun accept(str: String?) {
+            updateStatus(str!!)
         }
-
     }
 
     fun installRunAction() {
@@ -49,7 +64,8 @@ open class GuiScriptEditorFrame() {
 //        })
         guiScriptEditorPanel.setRunButtonAction(object : AbstractAction("Run") {
             override fun actionPerformed(e: ActionEvent?) {
-                KotlinCompileUtil.compileAndEvalCodeWithNotifier(GuiScriptEditor.getCode(), myNotifier)
+                updateStatus("<long>Run current script")
+                ApplicationManager.getApplication().executeOnPooledThread { KotlinCompileUtil.compileAndEvalCodeWithNotifier(GuiScriptEditor.getCode(), myNotifier) }
             }
         })
     }
