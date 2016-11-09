@@ -10,15 +10,15 @@ import com.intellij.testFramework.LightVirtualFile
 /**
  * @author Sergey Karashevich
  */
-object GuiScriptEditor {
+class GuiScriptEditor {
 
     var myEditor: EditorEx? = null
 
     fun getPanel() = myEditor!!.component
 
-    fun createEditor(): EditorEx {
+    init {
         val editorFactory = EditorFactory.getInstance()
-        val editorDocument = editorFactory.createDocument(getGuiScriptBuffer())
+        val editorDocument = editorFactory.createDocument("")
         val editor = (editorFactory.createEditor(editorDocument) as EditorEx)
         editor.colorsScheme = EditorColorsManager.getInstance().getGlobalScheme()
         val settings = editor.settings
@@ -30,27 +30,18 @@ object GuiScriptEditor {
         settings.additionalColumnsCount = 0
         settings.additionalLinesCount = 0
         settings.isRightMarginShown = true
-        settings.setRightMargin(60)
 
         val pos = LogicalPosition(0, 0)
         editor.caretModel.moveToLogicalPosition(pos)
         editor.highlighter = EditorHighlighterFactory.getInstance().createEditorHighlighter(LightVirtualFile("a.kt"), editor.colorsScheme, null)
 
         myEditor = editor
-        return myEditor!!
-    }
-
-    fun getGuiScriptBuffer() = ScriptGenerator.getScriptBuffer()
-
-    fun getCode() = myEditor!!.document.getText()
-
-    fun update() {
-        myEditor!!.document.setText(getGuiScriptBuffer())
     }
 
     //Editor should be realised before Application is closed
     fun releaseEditor() {
         EditorFactory.getInstance().releaseEditor(myEditor!!)
+        myEditor = null
     }
 
 }

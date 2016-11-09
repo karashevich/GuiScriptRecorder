@@ -1,12 +1,10 @@
 import ScriptGenerator.scriptBuffer
-import com.intellij.testGuiFramework.fixtures.newProjectWizard.NewProjectWizardFixture
 import com.intellij.testGuiFramework.framework.GuiTestUtil
 import com.intellij.ui.components.JBList
 import org.fest.swing.core.BasicRobot
 import ui.KeyUtil
 import java.awt.Component
 import java.awt.Container
-import java.awt.event.KeyEvent
 import javax.swing.*
 
 /**
@@ -97,6 +95,8 @@ object ScriptGenerator {
             is JBList<*> -> {
                 if (isPopupList(cmp))
                     Writer.write(Templates.clickPopupItem(itemName!!))
+                else if (isFrameworksTree(cmp))
+                    Writer.write(Templates.clickFrameworksTree(itemName!!))
                 else
                     Writer.write(Templates.clickListItem(itemName!!))
             }
@@ -104,6 +104,8 @@ object ScriptGenerator {
     }
 
     private fun isPopupList(cmp: Component) = cmp.javaClass.name.toLowerCase().contains("listpopup")
+    private fun isFrameworksTree(cmp: Component) = cmp.javaClass.name.toLowerCase().contains("frameworkstree")
+
     private fun getLabel(container: Container, jTextField: JTextField): JLabel? {
         val robot = BasicRobot.robotWithCurrentAwtHierarchyWithoutScreenLock()
         return GuiTestUtil.findBoundedLabel(container, jTextField, robot)
@@ -152,6 +154,7 @@ private object Typer{
     fun flushBuffer() {
         if (strBuffer.length == 0) return
         Writer.write("//typed:[${strBuffer.length},\"${strBuffer.toString()}\", raw=\"${rawBuffer.toString()}\"]")
+        Writer.write(Templates.typeText(strBuffer.toString()))
         strBuffer.setLength(0)
         rawBuffer.setLength(0)
     }
@@ -169,13 +172,16 @@ private object Templates {
     fun findAndClickButton(text: String) = "GuiTestUtil.findAndClickButton(this, \"${text}\")"
     fun clickActionLink(text: String) = "ActionLinkFixture.findActionLinkByName(\"${text}\", robot(), this.target()).click()"
 
-    fun clickPopupItem(itemName: String) = "GuiTestUtil.clickPopupMenuItem(\"${itemName}\", this.target(), robot())"
-    fun clickListItem(name: String) = "clickListItem(\"${name}\", robot(), this.target())"
+    fun clickPopupItem(itemName: String) = "GuiTestUtil.clickPopupMenuItem(\"${itemName}\", true, this.target(), robot())"
+    fun clickListItem(name: String) = "JListFixture(robot(), robot().finder().findByType(this.target(), JBList::class.java, true)).clickItem($name)"
 
     fun findJTextField() = "val textField = myRobot.finder().findByType(JTextField::class.java)"
     fun findJTextFieldByLabel(labelText: String) = "val textField = findTextField(\"${labelText}\").click()"
     fun findJTextFieldAndDoubleClick() = "val textField = myRobot.finder().findByType(JTextField::class.java).doubleClick()"
     fun findJTextFieldByLabelAndDoubleClick(labelText: String) = "val textField = findTextField(\"${labelText}\").doubleClick()"
+
+    fun typeText(text: String) = "GuiTestUtil.typeText(\"$text\", robot(), 10)"
+    fun clickFrameworksTree(itemName: String) = "selectFramework(\"$itemName\")"
 }
 
 

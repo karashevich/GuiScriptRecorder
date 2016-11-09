@@ -1,5 +1,13 @@
 package ui;
 
+import actions.PerformScriptAction;
+import actions.StartStopRecAction;
+import actions.UpdateEditorAction;
+import com.intellij.openapi.actionSystem.ActionManager;
+import com.intellij.openapi.actionSystem.ActionPlaces;
+import com.intellij.openapi.actionSystem.ActionToolbar;
+import com.intellij.openapi.actionSystem.DefaultActionGroup;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.util.SystemInfo;
 import com.intellij.openapi.wm.impl.status.TextPanel;
 import com.intellij.util.ui.AsyncProcessIcon;
@@ -7,7 +15,6 @@ import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
 
 /**
  * @author Sergey Karashevich
@@ -15,51 +22,50 @@ import java.awt.event.ActionEvent;
 public class GuiScriptEditorPanel {
     private JButton runButton;
     private JPanel editorPanel;
-    private JButton recButton;
-    private JButton stopButton;
-    private JPanel buttonRow;
     private JPanel myPanel;
     private JLabel myStatusLabel;
     private JPanel myStatusBarPanel;
     private AsyncProcessIcon progressIcon;
-    private JButton updateButton;
+    private JPanel iconButtonRow;
+
+    private GuiScriptEditor myEditor;
 
     public GuiScriptEditorPanel() {
         super();
         myStatusLabel.setFont(SystemInfo.isMac ? JBUI.Fonts.label(11) : JBUI.Fonts.label());
         progressIcon.setVisible(false);
 
+        myEditor = new GuiScriptEditor();
+
         progressIcon.suspend();
-        editorPanel.add(GuiScriptEditor.INSTANCE.getPanel(), BorderLayout.CENTER);
-        updateButton.setAction(new AbstractAction("Update") {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                GuiScriptEditor.INSTANCE.update();
-            }
-        });
-        recButton.setAction(new AbstractAction("Rec") {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateStatus("Start recording GUI script");
-            }
-        });
-        stopButton.setAction(new AbstractAction("Stop") {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateStatus("Recording GUI script stopped");
-            }
-        });
-        runButton.setAction(new AbstractAction("Run") {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateStatus("Perform selected GUI script");
-            }
-        });
+        editorPanel.add(myEditor.getPanel(), BorderLayout.CENTER);
+
+        installActionToolbar();
+    }
+
+    public Editor getEditor(){
+        return myEditor.getMyEditor();
+    }
+
+    public void releaseEditor(){
+        myEditor.releaseEditor();
+    }
+
+    private void installActionToolbar() {
+        final DefaultActionGroup group = new DefaultActionGroup();
+        group.add(new StartStopRecAction());
+        group.add(new UpdateEditorAction());
+        group.add(new PerformScriptAction());
+        final ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, group, true);
+
+        iconButtonRow.add(toolbar.getComponent(), BorderLayout.CENTER);
     }
 
     public void setRunButtonAction(Action action) {
         runButton.setAction(action);
     }
+
+    public void setUpdateButtonAction(Action action) { runButton.setAction(action); }
 
     public Component getPanel(){
         return myPanel;

@@ -1,17 +1,14 @@
 package components
 
 import actions.StartStopRecAction
-import com.intellij.openapi.actionSystem.ActionManager
-import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.components.ApplicationComponent
-import com.intellij.openapi.ui.playback.commands.ActionCommand
-import java.awt.event.InputEvent
 
 /**
  * @author Sergey Karashevich
  */
-class GuiRecorderComponent: ApplicationComponent{
+object GuiRecorderComponent : ApplicationComponent {
 
+    private var myFrame: ui.GuiScriptEditorFrame? = null
 
     override fun getComponentName() = "GuiRecorderComponent"
 
@@ -21,7 +18,19 @@ class GuiRecorderComponent: ApplicationComponent{
 
     override fun initComponent() {
         val recAction = StartStopRecAction()
-        ActionManager.getInstance().tryToExecute(recAction, ActionCommand.getInputEvent(ActionManager.getInstance().getId(recAction)), null, ActionPlaces.UNKNOWN, false)
+        recAction.setSelected(null, true)
+    }
+
+    fun getFrame() = myFrame
+
+    fun getEditor() = myFrame!!.getGuiScriptEditorPanel().editor
+
+    fun registerFrame(frame: ui.GuiScriptEditorFrame) {
+        myFrame = frame
+    }
+
+    fun disposeFrame(){
+        myFrame = null
     }
 
 }
