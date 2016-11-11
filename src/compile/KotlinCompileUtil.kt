@@ -19,6 +19,7 @@ import java.util.function.Consumer
 object KotlinCompileUtil {
 
     fun compiledAndEvalWithNotifier(codeString: String, notifier: Consumer<String>){
+
         withDiffContextClassLoader {
             withIsolatedClassLoader { isolatedKotlinLibClassLoader ->
                 val daemonCompilerCls = isolatedKotlinLibClassLoader.loadClass(DaemonCompiler::class.qualifiedName)

@@ -1,3 +1,4 @@
+import com.intellij.ide.util.newProjectWizard.FrameworksTree
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.ui.components.JBList
@@ -11,7 +12,6 @@ import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
 import java.awt.event.MouseEvent.BUTTON1
 import java.awt.event.MouseEvent.MOUSE_PRESSED
-import javax.swing.JComponent
 import javax.swing.JFrame
 import javax.swing.SwingUtilities
 
@@ -52,6 +52,13 @@ object EventProcessor {
                         me.locationOnScreen.x - component.locationOnScreen.x,
                         me.locationOnScreen.y - component.locationOnScreen.y)
                 itemName = getCellText((component as JBList<*>?)!!, convertedPoint)
+            }
+            if (component is FrameworksTree) {
+                val ft = (component as FrameworksTree)
+                val convertedPoint = Point(
+                        me.locationOnScreen.x - ft.locationOnScreen.x,
+                        me.locationOnScreen.y - ft.locationOnScreen.y)
+                itemName = ft.getClosestPathForLocation(convertedPoint.x, convertedPoint.y).lastPathComponent.toString()
             }
             LOG.info("Delegate click from component:${component}")
             ScriptGenerator.clickCmp(component, itemName, clickCount)

@@ -1,4 +1,5 @@
 import ScriptGenerator.scriptBuffer
+import com.intellij.ide.util.newProjectWizard.FrameworksTree
 import com.intellij.testGuiFramework.framework.GuiTestUtil
 import com.intellij.ui.components.JBList
 import org.fest.swing.core.BasicRobot
@@ -20,19 +21,6 @@ object ScriptGenerator {
         if (scriptBuffer.length > 0)
             scriptBuffer.appendln("}")  //close context
         return wrapScriptWithFunDef(scriptBuffer.toString())
-//        val tmpBuffer = "val welcomeFrame = findWelcomeFrame() \n" +
-//                "with (welcomeFrame){ \n" +
-//                "ActionLinkFixture.findActionLinkByName(\"Create New Project\", robot(), this.target()).click() \n" +
-//                "} \n" +
-//                "val projectWizard = findNewProjectWizard() \n" +
-//                "with (projectWizard){ \n" +
-//                "selectProjectType(\"Java\") \n" +
-//                "GuiTestUtil.findAndClickButton(this, \"Next\") \n" +
-//                "GuiTestUtil.findAndClickButton(this, \"Next\") \n" +
-//                "}\n"
-//        val wrapScriptWithFunDef = wrapScriptWithFunDef(tmpBuffer)
-//        println("SCRIPT TO BE PERFORMED: \n $wrapScriptWithFunDef")
-//        return wrapScriptWithFunDef
     }
 
     fun wrapScriptWithFunDef(body: String): String {
@@ -41,13 +29,15 @@ object ScriptGenerator {
                 "import com.intellij.testGuiFramework.fixtures.newProjectWizard.NewProjectWizardFixture \n" +
                 "import org.fest.swing.core.Robot \n" +
                 "import java.awt.Component \n" +
-                "import com.intellij.openapi.application.ApplicationManager"
+                "import com.intellij.openapi.application.ApplicationManager \n" +
+                "import org.fest.swing.fixture.*;"
+
         val injection = "fun clickListItem(itemName: String, robot: Robot, component: Component) {(this as NewProjectWizardFixture).selectProjectType(itemName) }"
         val testFun = "fun testGitImport(){"
         val postfix = "} \n setUp() \n" +
-                "ApplicationManager.getApplication().executeOnPooledThread { testGitImport() }"
+                "testGitImport()"
         return "$import \n " +
-                "$injection \n " +
+//                "$injection \n " +
                 "$testFun \n" +
                 "$body \n " +
                 "$postfix"
@@ -96,15 +86,15 @@ object ScriptGenerator {
                 if (isPopupList(cmp))
                     Writer.write(Templates.clickPopupItem(itemName!!))
                 else if (isFrameworksTree(cmp))
-                    Writer.write(Templates.clickFrameworksTree(itemName!!))
                 else
                     Writer.write(Templates.clickListItem(itemName!!))
             }
+            is FrameworksTree -> Writer.write(Templates.clickFrameworksTree(itemName!!))
         }
     }
 
     private fun isPopupList(cmp: Component) = cmp.javaClass.name.toLowerCase().contains("listpopup")
-    private fun isFrameworksTree(cmp: Component) = cmp.javaClass.name.toLowerCase().contains("frameworkstree")
+    private fun isFrameworksTree(cmp: Component) = cmp.javaClass.name.toLowerCase().contains("AddSupportForFrameworksPanel".toLowerCase())
 
     private fun getLabel(container: Container, jTextField: JTextField): JLabel? {
         val robot = BasicRobot.robotWithCurrentAwtHierarchyWithoutScreenLock()
@@ -153,7 +143,7 @@ private object Typer{
 
     fun flushBuffer() {
         if (strBuffer.length == 0) return
-        Writer.write("//typed:[${strBuffer.length},\"${strBuffer.toString()}\", raw=\"${rawBuffer.toString()}\"]")
+        Writer.write("//typed:[${strBuffer.length},\"${strBuffer.toString()}\", raw=[${rawBuffer.toString()}]]")
         Writer.write(Templates.typeText(strBuffer.toString()))
         strBuffer.setLength(0)
         rawBuffer.setLength(0)
@@ -173,7 +163,7 @@ private object Templates {
     fun clickActionLink(text: String) = "ActionLinkFixture.findActionLinkByName(\"${text}\", robot(), this.target()).click()"
 
     fun clickPopupItem(itemName: String) = "GuiTestUtil.clickPopupMenuItem(\"${itemName}\", true, this.target(), robot())"
-    fun clickListItem(name: String) = "JListFixture(robot(), robot().finder().findByType(this.target(), JBList::class.java, true)).clickItem($name)"
+    fun clickListItem(name: String) = "JListFixture(robot(), robot().finder().findByType(this.target(), com.intellij.ui.components.JBList::class.java, true)).clickItem(\"$name\")"
 
     fun findJTextField() = "val textField = myRobot.finder().findByType(JTextField::class.java)"
     fun findJTextFieldByLabel(labelText: String) = "val textField = findTextField(\"${labelText}\").click()"
@@ -212,7 +202,7 @@ private class Contexts() {
         currentContextType = Type.WELCOME_FRAME
         val name = "welcomeFrame"
         val findWelcomeFrame = Templates.findWelcomeFrame(name)
-        var withWelcomeFrame = Templates.withWelcomeFrame(name)
+        val withWelcomeFrame = Templates.withWelcomeFrame(name)
         return findWelcomeFrame + "\n" + withWelcomeFrame
     }
 
