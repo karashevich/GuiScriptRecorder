@@ -1,6 +1,7 @@
 import com.intellij.ide.util.newProjectWizard.FrameworksTree
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.platform.ProjectTemplate
 import com.intellij.ui.components.JBList
 import com.intellij.ui.popup.PopupFactoryImpl
 import com.intellij.util.containers.HashMap
@@ -70,10 +71,10 @@ object EventProcessor {
         val cellBounds = jbList.getCellBounds(index, index)
         if (cellBounds.contains(pointOnList)) {
             val elementAt = jbList.model.getElementAt(index)
-            if (elementAt is PopupFactoryImpl.ActionItem) {
-                return elementAt.text
-            } else {
-                return elementAt.toString()
+            when(elementAt){
+                is PopupFactoryImpl.ActionItem -> return elementAt.text
+                is ProjectTemplate -> return elementAt.name
+                else -> elementAt.toString()
             }
         }
         return null

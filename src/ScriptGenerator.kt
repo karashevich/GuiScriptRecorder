@@ -1,6 +1,7 @@
 import ScriptGenerator.scriptBuffer
 import com.intellij.ide.util.newProjectWizard.FrameworksTree
 import com.intellij.testGuiFramework.framework.GuiTestUtil
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBList
 import org.fest.swing.core.BasicRobot
 import ui.KeyUtil
@@ -90,6 +91,7 @@ object ScriptGenerator {
                     Writer.write(Templates.clickListItem(itemName!!))
             }
             is FrameworksTree -> Writer.write(Templates.clickFrameworksTree(itemName!!))
+            is JBCheckBox -> Writer.write(Templates.clickJBCheckBox(cmp.text))
         }
     }
 
@@ -172,6 +174,7 @@ private object Templates {
 
     fun typeText(text: String) = "GuiTestUtil.typeText(\"$text\", robot(), 10)"
     fun clickFrameworksTree(itemName: String) = "selectFramework(\"$itemName\")"
+    fun clickJBCheckBox(text: String) = "JBCheckBoxFixture.findByText(\"$text\", this.target(), robot(), true).click()"
 }
 
 

@@ -62,6 +62,10 @@ open class GuiTestCases() : GuiTestBase() {
                 super.click(c, where, button, times)
             }
 
+            override fun click(where: Point, button: MouseButton, times: Int) {
+                moveMouse(where.x, where.y)
+                super.click(where, button, times)
+            }
         }
         setRobot(smartRobot)
 
