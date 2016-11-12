@@ -92,6 +92,7 @@ object ScriptGenerator {
             }
             is FrameworksTree -> Writer.write(Templates.clickFrameworksTree(itemName!!))
             is JBCheckBox -> Writer.write(Templates.clickJBCheckBox(cmp.text))
+            is JCheckBox -> Writer.write(Templates.clickJCheckBox(cmp.text))
         }
     }
 
@@ -175,6 +176,7 @@ private object Templates {
     fun typeText(text: String) = "GuiTestUtil.typeText(\"$text\", robot(), 10)"
     fun clickFrameworksTree(itemName: String) = "selectFramework(\"$itemName\")"
     fun clickJBCheckBox(text: String) = "JBCheckBoxFixture.findByText(\"$text\", this.target(), robot(), true).click()"
+    fun clickJCheckBox(text: String) = "CheckBoxFixture.findByText(\"$text\", this.target(), robot(), true).click()"
 }
 
 
