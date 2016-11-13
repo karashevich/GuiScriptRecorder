@@ -1,6 +1,5 @@
 package components
 
-import actions.StartPauseRecAction
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.ApplicationComponent
 
@@ -22,8 +21,7 @@ object GuiRecorderComponent : ApplicationComponent, Disposable {
     }
 
     override fun initComponent() {
-        val recAction = StartPauseRecAction()
-        recAction.setSelected(null, true)
+
     }
 
     fun getFrame() = myFrame

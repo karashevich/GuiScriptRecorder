@@ -8,6 +8,7 @@ import components.GuiRecorderComponent
 import org.fest.swing.core.BasicRobot
 import org.fest.swing.core.GenericTypeMatcher
 import org.fest.swing.exception.ComponentLookupException
+import ui.GuiScriptEditorFrame
 import ui.KeyUtil
 import java.awt.Component
 import java.awt.Container
@@ -164,23 +165,42 @@ object ScriptGenerator {
         cmp as JComponent
         if (openComboBox) return //don't change context for comboBox list
         if (isPopupList(cmp)) return //dont' change context for a popup menu
+        val parent = cmp.rootPane.parent
         if (currentContextComponent != null && cmp.rootPane != currentContextComponent) {
+            if (parent is JFrame && parent.title == GuiScriptEditorFrame.GUI_SCRIPT_FRAME_TITLE) return //do nothing if switch to GUI Script Editor
             Writer.writeln(currentContext.closeContext())
         }
         if (currentContextComponent == null || cmp.rootPane != currentContextComponent) {
             currentContextComponent = cmp.rootPane
-            when (cmp.rootPane.parent) {
+            when (parent) {
                 is JDialog -> {
-                    if ((cmp.rootPane.parent as JDialog).title == com.intellij.ide.IdeBundle.message("title.new.project"))
+                    if (parent.title == com.intellij.ide.IdeBundle.message("title.new.project")) {
                         Writer.writeln(currentContext.projectWizardContextStart())
-                    else
-                        Writer.writeln(currentContext.dialogContextStart((cmp.rootPane.parent as JDialog).title))
+                        makeIndent()
+                        return
+                    } else {
+                        Writer.writeln(currentContext.dialogContextStart(parent.title))
+                        makeIndent()
+                        return
+                    }
                 }
-                is com.intellij.openapi.wm.impl.welcomeScreen.FlatWelcomeFrame -> Writer.writeln(currentContext.welcomeFrameStart())
-                is JFrame -> println("is JFrame")
+                is com.intellij.openapi.wm.impl.welcomeScreen.FlatWelcomeFrame -> {
+                    Writer.writeln(currentContext.welcomeFrameStart())
+                    makeIndent()
+                    return
+                }
+                is JFrame -> {
+                    println("is JFrame")
+                    return
+                }
             }
-
+        } else {
+            makeIndent()
         }
+    }
+
+    private fun makeIndent() {
+        Writer.write("  ")
     }
 
 }
@@ -239,9 +259,9 @@ private object Typer {
 private object Templates {
     fun findDialog(name: String, title: String?) = "val ${name} = DialogFixture.find(robot(), \"${title}\")"
     fun withDialog(name: String) = "with (${name}){"
-    fun findProjectWizard(name: String) = "val ${name} = findNewProjectWizard()"
+    fun findProjectWizard(name: String) = "${name} = findNewProjectWizard()"
     fun withProjectWizard(name: String) = "with (${name}){"
-    fun findWelcomeFrame(name: String) = "val ${name} = findWelcomeFrame()"
+    fun findWelcomeFrame(name: String) = "${name} = findWelcomeFrame()"
     fun withWelcomeFrame(name: String) = "with (${name}){"
 
     fun findAndClickButton(text: String) = "GuiTestUtil.findAndClickButton(this, \"${text}\")"
@@ -269,6 +289,9 @@ private class Contexts() {
 
     enum class Type {DIALOG, WELCOME_FRAME, PROJECT_WIZARD, IDE_FRAME }
 
+    private var projectWizardFind = false
+    private var welcomeFrameFind = false
+
     var dialogCount = 0
     var currentContextType: Type? = null
 
@@ -283,16 +306,20 @@ private class Contexts() {
     fun projectWizardContextStart(): String {
         currentContextType = Type.PROJECT_WIZARD
         val name = "projectWizard"
-        val findProjectWizard = Templates.findProjectWizard(name)
+        val findProjectWizard = (if(projectWizardFind) "" else "var ") + Templates.findProjectWizard(name)
         val withProjectWizard = Templates.withProjectWizard(name)
+        projectWizardFind = true
+
         return findProjectWizard + "\n" + withProjectWizard
     }
 
     fun welcomeFrameStart(): String {
         currentContextType = Type.WELCOME_FRAME
         val name = "welcomeFrame"
-        val findWelcomeFrame = Templates.findWelcomeFrame(name)
+        val findWelcomeFrame = (if(welcomeFrameFind) "" else "var ") + Templates.findWelcomeFrame(name)
         val withWelcomeFrame = Templates.withWelcomeFrame(name)
+        welcomeFrameFind = true
+
         return findWelcomeFrame + "\n" + withWelcomeFrame
     }
 

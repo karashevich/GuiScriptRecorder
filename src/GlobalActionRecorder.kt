@@ -1,4 +1,3 @@
-import actions.StartPauseRecAction
 import com.intellij.ide.IdeEventQueue
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
@@ -19,7 +18,9 @@ object GlobalActionRecorder {
 
     private val LOG by lazy { Logger.getInstance("#${GlobalActionRecorder::class.qualifiedName}") }
 
-    private var isActive = false
+    private var active = false
+
+    fun isActive() = active
 
     private val globalActionListener = object : AnActionListener {
         override fun beforeActionPerformed(p0: AnAction?, p1: DataContext?, p2: AnActionEvent?) {
@@ -48,21 +49,20 @@ object GlobalActionRecorder {
     }
 
     fun activate() {
-        if (isActive) return
+        if (active) return
         LOG.info("Global action recorder is active")
         ActionManager.getInstance().addAnActionListener(globalActionListener)
         IdeEventQueue.getInstance().addDispatcher(globalAwtProcessor, GuiRecorderComponent) //todo: add disposal dependency on component
-        isActive = true
+        active = true
     }
 
     fun deactivate() {
-        if (isActive) {
+        if (active) {
             LOG.info("Global action recorder is non active")
             ActionManager.getInstance().removeAnActionListener(globalActionListener)
             IdeEventQueue.getInstance().removeDispatcher(globalAwtProcessor)
-            StartPauseRecAction().setSelected(null, false)
         }
-        isActive = false
+        active = false
     }
 
 }

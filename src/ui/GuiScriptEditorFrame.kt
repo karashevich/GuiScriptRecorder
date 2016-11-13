@@ -1,5 +1,6 @@
 package ui
 
+import actions.StartPauseRecAction
 import com.intellij.openapi.Disposable
 import components.GuiRecorderComponent
 import java.awt.Container
@@ -10,6 +11,10 @@ import javax.swing.JFrame
 import javax.swing.SwingUtilities
 
 class GuiScriptEditorFrame: Disposable {
+
+    companion object{
+        val GUI_SCRIPT_FRAME_TITLE = "GUI Script Editor"
+    }
 
     override fun dispose() {
         guiScriptEditorPanel.releaseEditor()
@@ -38,6 +43,9 @@ class GuiScriptEditorFrame: Disposable {
                 dispose()
             }
         })
+
+        val recAction = StartPauseRecAction()
+        recAction.setSelected(null, true)
     }
 
     fun toFront() { SwingUtilities.invokeLater { myFrame.toFront(); myFrame.repaint() } }
