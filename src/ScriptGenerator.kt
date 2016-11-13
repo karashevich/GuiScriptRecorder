@@ -120,6 +120,9 @@ object ScriptGenerator {
                 val label = getBoundedLabelForComboBox(cmp)
                 Writer.write(Templates.onJComboBox(label.text))
             }
+            is JRadioButton -> {
+                Writer.writeln(Templates.clickRadioButton(cmp.text))
+            }
         }
     }
 
@@ -282,6 +285,7 @@ private object Templates {
 
     fun onJComboBox(text: String) = "GuiTestUtil.findComboBox(robot(), this.target(), \"$text\")"
     fun selectComboBox(itemName: String) = ".selectItem(\"$itemName\")"
+    fun clickRadioButton(text: String) = "GuiTestUtil.findRadioButton(robot(), this.target(), \"$text\").select()"
 }
 
 
