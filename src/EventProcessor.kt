@@ -1,3 +1,5 @@
+import com.intellij.framework.PresentableVersion
+import com.intellij.ide.util.frameworkSupport.FrameworkVersion
 import com.intellij.ide.util.newProjectWizard.FrameworksTree
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.diagnostic.Logger
@@ -14,6 +16,7 @@ import java.awt.event.MouseEvent
 import java.awt.event.MouseEvent.BUTTON1
 import java.awt.event.MouseEvent.MOUSE_PRESSED
 import javax.swing.JFrame
+import javax.swing.JList
 import javax.swing.SwingUtilities
 
 /**
@@ -48,6 +51,12 @@ object EventProcessor {
             var itemName: String? = null
             val dataMap = HashMap<String, Any>()
             dataMap.put("Component", component)
+            if (component is JList<*>) {
+                val convertedPoint = Point(
+                        me.locationOnScreen.x - component.locationOnScreen.x,
+                        me.locationOnScreen.y - component.locationOnScreen.y)
+                itemName = getCellText((component as JList<*>?)!!, convertedPoint)
+            }
             if (component is JBList<*>) {
                 val convertedPoint = Point(
                         me.locationOnScreen.x - component.locationOnScreen.x,
@@ -74,7 +83,23 @@ object EventProcessor {
             when(elementAt){
                 is PopupFactoryImpl.ActionItem -> return elementAt.text
                 is ProjectTemplate -> return elementAt.name
-                else -> elementAt.toString()
+                else -> return elementAt.toString()
+            }
+        }
+        return null
+    }
+
+    fun getCellText(jList: JList<*>, pointOnList: Point): String? {
+        val index = jList.locationToIndex(pointOnList)
+        val cellBounds = jList.getCellBounds(index, index)
+        if (cellBounds.contains(pointOnList)) {
+            val elementAt = jList.model.getElementAt(index)
+            when(elementAt){
+                is PopupFactoryImpl.ActionItem -> return elementAt.text
+                is ProjectTemplate -> return elementAt.name
+                is PresentableVersion -> return elementAt.presentableName
+                is FrameworkVersion -> return elementAt.versionName
+                else -> return elementAt.toString()
             }
         }
         return null

@@ -1,8 +1,6 @@
 package ui;
 
-import actions.PerformScriptAction;
-import actions.StartStopRecAction;
-import actions.UpdateEditorAction;
+import actions.*;
 import com.intellij.openapi.actionSystem.ActionManager;
 import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.actionSystem.ActionToolbar;
@@ -53,9 +51,11 @@ public class GuiScriptEditorPanel {
 
     private void installActionToolbar() {
         final DefaultActionGroup group = new DefaultActionGroup();
-        group.add(new StartStopRecAction());
+        group.add(new StartPauseRecAction());
+        group.add(new StopRecAction());
         group.add(new UpdateEditorAction());
         group.add(new PerformScriptAction());
+        group.add(new SyncEditorAction());
         final ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, group, true);
 
         iconButtonRow.add(toolbar.getComponent(), BorderLayout.CENTER);
@@ -93,10 +93,18 @@ public class GuiScriptEditorPanel {
         progressIcon = new AsyncProcessIcon("Progress");
     }
 
+    public boolean getSyncToEditor() {
+        return myEditor.getSyncEditor();
+    }
+
     private class MyTextPanel extends TextPanel{
         MyTextPanel(){
             super();
         }
+    }
+
+    public void setSyncToEditor(boolean toSync){
+        myEditor.setSyncEditor(toSync);
     }
 
 }

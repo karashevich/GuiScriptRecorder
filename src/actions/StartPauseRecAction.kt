@@ -10,10 +10,10 @@ import ui.Notifier
  * @author Sergey Karashevich
  */
 
-class StartStopRecAction : ToggleAction(null, "Start/Stop GUI Script Recording", AllIcons.Ide.Macro.Recording_1){
+class StartPauseRecAction : ToggleAction(null, "Start/Stop GUI Script Recording", AllIcons.Ide.Macro.Recording_1){
 
     companion object{
-        var state = State.STOPPED
+        var state = State.PAUSED
     }
 
     override fun isSelected(actionEvent: AnActionEvent?): Boolean = state == State.STARTED
@@ -27,15 +27,15 @@ class StartStopRecAction : ToggleAction(null, "Start/Stop GUI Script Recording",
             Notifier.updateStatus("Recording started")
             GlobalActionRecorder.activate()
         } else {
-            state = State.STOPPED
+            state = State.PAUSED
             val presentation = if (actionEvent != null) actionEvent.presentation else templatePresentation
             presentation.description = "Start GUI Script Recording"
             presentation.icon = AllIcons.Ide.Macro.Recording_1
-            Notifier.updateStatus("Recording stopped")
+            Notifier.updateStatus("Recording paused")
             GlobalActionRecorder.deactivate()
         }
     }
 
-    enum class State {STARTED, STOPPED}
+    enum class State {STARTED, PAUSED, STOPPED}
 
 }

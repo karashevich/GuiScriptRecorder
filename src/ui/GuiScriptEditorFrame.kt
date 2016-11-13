@@ -7,6 +7,7 @@ import java.awt.Dimension
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import javax.swing.JFrame
+import javax.swing.SwingUtilities
 
 class GuiScriptEditorFrame: Disposable {
 
@@ -39,8 +40,15 @@ class GuiScriptEditorFrame: Disposable {
         })
     }
 
+    fun toFront() { SwingUtilities.invokeLater { myFrame.toFront(); myFrame.repaint() } }
+
     fun getGuiScriptEditorPanel() = guiScriptEditorPanel
 
     fun getEditor() = guiScriptEditorPanel.editor
 
+    fun setSyncToEditor(toSync: Boolean) {
+        guiScriptEditorPanel.syncToEditor = toSync
+    }
+
+    fun isSyncToEditor() = guiScriptEditorPanel.syncToEditor
 }

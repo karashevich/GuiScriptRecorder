@@ -22,7 +22,6 @@ import com.intellij.notification.NotificationsManager;
 import com.intellij.openapi.Disposable;
 import com.intellij.openapi.actionSystem.*;
 import com.intellij.openapi.actionSystem.impl.SimpleDataContext;
-import com.intellij.openapi.extensions.Extensions;
 import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.roots.ui.configuration.actions.IconWithTextAction;
 import com.intellij.openapi.ui.DialogWrapper;
@@ -44,7 +43,9 @@ import com.intellij.util.ReflectionUtil;
 import com.intellij.util.containers.ContainerUtil;
 import com.intellij.util.containers.HashMap;
 import com.intellij.util.containers.WeakKeyWeakValueHashMap;
-import com.intellij.util.ui.*;
+import com.intellij.util.ui.JBUI;
+import com.intellij.util.ui.PlatformColors;
+import com.intellij.util.ui.UIUtil;
 import com.intellij.util.ui.tree.TreeUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -101,8 +102,8 @@ public class UiDropperAction extends ToggleAction implements DumbAware {
   }
 
   @Override
-  public void setSelected(AnActionEvent e, boolean state) {
-    if (state) {
+  public void setSelected(AnActionEvent e, boolean toSync) {
+    if (toSync) {
       if (myUiDropper == null) {
         myUiDropper = new UiDropper();
       }

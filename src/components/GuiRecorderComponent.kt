@@ -1,6 +1,6 @@
 package components
 
-import actions.StartStopRecAction
+import actions.StartPauseRecAction
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.ApplicationComponent
 
@@ -22,7 +22,7 @@ object GuiRecorderComponent : ApplicationComponent, Disposable {
     }
 
     override fun initComponent() {
-        val recAction = StartStopRecAction()
+        val recAction = StartPauseRecAction()
         recAction.setSelected(null, true)
     }
 
@@ -32,6 +32,11 @@ object GuiRecorderComponent : ApplicationComponent, Disposable {
 
     fun registerFrame(frame: ui.GuiScriptEditorFrame) {
         myFrame = frame
+    }
+
+    fun unregisterFrame(){
+        if (myFrame != null)
+            myFrame!!.dispose()
     }
 
     fun disposeFrame(){

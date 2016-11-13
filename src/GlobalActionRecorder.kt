@@ -1,3 +1,4 @@
+import actions.StartPauseRecAction
 import com.intellij.ide.IdeEventQueue
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
@@ -59,6 +60,7 @@ object GlobalActionRecorder {
             LOG.info("Global action recorder is non active")
             ActionManager.getInstance().removeAnActionListener(globalActionListener)
             IdeEventQueue.getInstance().removeDispatcher(globalAwtProcessor)
+            StartPauseRecAction().setSelected(null, false)
         }
         isActive = false
     }

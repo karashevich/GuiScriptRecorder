@@ -13,6 +13,7 @@ import com.intellij.testFramework.LightVirtualFile
 class GuiScriptEditor {
 
     var myEditor: EditorEx? = null
+    var syncEditor = false
 
     fun getPanel() = myEditor!!.component
 
@@ -20,7 +21,7 @@ class GuiScriptEditor {
         val editorFactory = EditorFactory.getInstance()
         val editorDocument = editorFactory.createDocument("")
         val editor = (editorFactory.createEditor(editorDocument) as EditorEx)
-        editor.colorsScheme = EditorColorsManager.getInstance().getGlobalScheme()
+        editor.colorsScheme = EditorColorsManager.getInstance().globalScheme
         val settings = editor.settings
         settings.isLineNumbersShown = true
         settings.isWhitespacesShown = true
@@ -36,6 +37,9 @@ class GuiScriptEditor {
         editor.highlighter = EditorHighlighterFactory.getInstance().createEditorHighlighter(LightVirtualFile("a.kt"), editor.colorsScheme, null)
 
         myEditor = editor
+
+        //let editor be synchronised by default
+        syncEditor = true
     }
 
     //Editor should be realised before Application is closed

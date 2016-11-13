@@ -1,9 +1,13 @@
 import ScriptGenerator.scriptBuffer
 import com.intellij.ide.util.newProjectWizard.FrameworksTree
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.testGuiFramework.framework.GuiTestUtil
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBList
+import components.GuiRecorderComponent
 import org.fest.swing.core.BasicRobot
+import org.fest.swing.core.GenericTypeMatcher
+import org.fest.swing.exception.ComponentLookupException
 import ui.KeyUtil
 import java.awt.Component
 import java.awt.Container
@@ -16,7 +20,11 @@ object ScriptGenerator {
 
     val scriptBuffer = StringBuilder()
 
+    var openComboBox = false;
+
     fun getScriptBuffer() = scriptBuffer.toString()
+
+    fun clearScriptBuffer() = scriptBuffer.setLength(0)
 
     fun getWrappedScriptBuffer(): String {
         if (scriptBuffer.length > 0)
@@ -38,7 +46,7 @@ object ScriptGenerator {
         val postfix = "} \n setUp() \n" +
                 "testGitImport()"
         return "$import \n " +
-//                "$injection \n " +
+                //                "$injection \n " +
                 "$testFun \n" +
                 "$body \n " +
                 "$postfix"
@@ -54,7 +62,7 @@ object ScriptGenerator {
 //        clickCmp(component, e)
 //    }
 
-    fun processTyping(keyChar: Char){
+    fun processTyping(keyChar: Char) {
         Typer.type(keyChar)
     }
 
@@ -66,33 +74,51 @@ object ScriptGenerator {
         Typer.flushBuffer()
         checkContext(cmp)
         when (cmp) {
-            is JButton -> Writer.write(Templates.findAndClickButton(cmp.text))
-            is com.intellij.ui.components.labels.ActionLink -> Writer.write(Templates.clickActionLink(cmp.text))
+            is JButton -> Writer.writeln(Templates.findAndClickButton(cmp.text))
+            is com.intellij.ui.components.labels.ActionLink -> Writer.writeln(Templates.clickActionLink(cmp.text))
             is JTextField -> {
                 if (clickCount == 1) {
                     val label = getLabel((currentContextComponent as Container?)!!, cmp)
                     if (label == null)
-                        Writer.write(Templates.findJTextField())
+                        Writer.writeln(Templates.findJTextField())
                     else
-                        Writer.write(Templates.findJTextFieldByLabel(label.text))
+                        Writer.writeln(Templates.findJTextFieldByLabel(label.text))
                 } else if (clickCount == 2) {
                     val label = getLabel((currentContextComponent as Container?)!!, cmp)
                     if (label == null)
-                        Writer.write(Templates.findJTextFieldAndDoubleClick())
+                        Writer.writeln(Templates.findJTextFieldAndDoubleClick())
                     else
-                        Writer.write(Templates.findJTextFieldByLabelAndDoubleClick(label.text))
+                        Writer.writeln(Templates.findJTextFieldByLabelAndDoubleClick(label.text))
                 }
             }
             is JBList<*> -> {
                 if (isPopupList(cmp))
-                    Writer.write(Templates.clickPopupItem(itemName!!))
+                    Writer.writeln(Templates.clickPopupItem(itemName!!))
                 else if (isFrameworksTree(cmp))
                 else
-                    Writer.write(Templates.clickListItem(itemName!!))
+                    Writer.writeln(Templates.clickListItem(itemName!!))
             }
-            is FrameworksTree -> Writer.write(Templates.clickFrameworksTree(itemName!!))
-            is JBCheckBox -> Writer.write(Templates.clickJBCheckBox(cmp.text))
-            is JCheckBox -> Writer.write(Templates.clickJCheckBox(cmp.text))
+            is JList<*> -> {
+                if (cmp.javaClass.name.contains("BasicComboPopup")){
+                    if (openComboBox) {
+                        Writer.writeln(Templates.selectComboBox(itemName!!))
+                        openComboBox = false
+                    } else {
+                        throw Exception("Unable to find combo box for this BasicComboPopup")
+                    }
+                } else {
+                    throw UnsupportedOperationException("not implemented")
+                }
+
+            }
+            is FrameworksTree -> Writer.writeln(Templates.clickFrameworksTree(itemName!!))
+            is JBCheckBox -> Writer.writeln(Templates.clickJBCheckBox(cmp.text))
+            is JCheckBox -> Writer.writeln(Templates.clickJCheckBox(cmp.text))
+            is JComboBox<*> -> {
+                openComboBox = true
+                val label = getBoundedLabelForComboBox(cmp)
+                Writer.write(Templates.onJComboBox(label.text))
+            }
         }
     }
 
@@ -104,22 +130,53 @@ object ScriptGenerator {
         return GuiTestUtil.findBoundedLabel(container, jTextField, robot)
     }
 
+
+    //We are looking for a closest bounded label in a 2 levels of hierarchy for JComboBox component
+    private fun getBoundedLabelForComboBox(cb: JComboBox<*>): JLabel {
+        val robot = BasicRobot.robotWithCurrentAwtHierarchyWithoutScreenLock()
+
+        val findBoundedLabel: (Component) -> JLabel? = { component ->
+            try {
+                robot.finder().find(component.parent as Container, object : GenericTypeMatcher<JLabel>(JLabel::class.java) {
+                    override fun isMatching(label: JLabel): Boolean {
+                        return label.labelFor != null && label.labelFor == component
+                    }
+                })
+            } catch(e: ComponentLookupException) {
+                null
+            }
+        }
+
+        val bounded1 = findBoundedLabel(cb)
+        if (bounded1 !== null) return bounded1
+
+        val bounded2 = findBoundedLabel(cb.parent)
+        if (bounded2 !== null) return bounded2
+
+        val bounded3 = findBoundedLabel(cb.parent!!.parent)
+        if (bounded3 !== null) return bounded3
+
+        throw ComponentLookupException("Unable to find bounded label in 2 levels from JComboBox")
+
+    }
+
     fun checkContext(cmp: Component) {
         cmp as JComponent
+        if (openComboBox) return //don't change context for comboBox list
         if (isPopupList(cmp)) return //dont' change context for a popup menu
-        if (currentContextComponent != null && !cmp.rootPane.equals(currentContextComponent)) {
-            Writer.write(currentContext.closeContext())
+        if (currentContextComponent != null && cmp.rootPane != currentContextComponent) {
+            Writer.writeln(currentContext.closeContext())
         }
-        if (currentContextComponent == null || !cmp.rootPane.equals(currentContextComponent)) {
+        if (currentContextComponent == null || cmp.rootPane != currentContextComponent) {
             currentContextComponent = cmp.rootPane
             when (cmp.rootPane.parent) {
                 is JDialog -> {
-                    if ((cmp.rootPane.parent as JDialog).title.equals(com.intellij.ide.IdeBundle.message("title.new.project")))
-                        Writer.write(currentContext.projectWizardContextStart())
+                    if ((cmp.rootPane.parent as JDialog).title == com.intellij.ide.IdeBundle.message("title.new.project"))
+                        Writer.writeln(currentContext.projectWizardContextStart())
                     else
-                        Writer.write(currentContext.dialogContextStart((cmp.rootPane.parent as JDialog).title))
+                        Writer.writeln(currentContext.dialogContextStart((cmp.rootPane.parent as JDialog).title))
                 }
-                is com.intellij.openapi.wm.impl.welcomeScreen.FlatWelcomeFrame -> Writer.write(currentContext.welcomeFrameStart())
+                is com.intellij.openapi.wm.impl.welcomeScreen.FlatWelcomeFrame -> Writer.writeln(currentContext.welcomeFrameStart())
                 is JFrame -> println("is JFrame")
             }
 
@@ -128,26 +185,51 @@ object ScriptGenerator {
 
 }
 
-private object Writer{
+private object Writer {
+
+    fun writeln(str: String) {
+        write(str + "\n")
+    }
+
     fun write(str: String) {
-        println(str)
-        scriptBuffer.appendln(str)
+        writeToConsole(str)
+        if (GuiRecorderComponent.getFrame() != null && GuiRecorderComponent.getFrame()!!.isSyncToEditor())
+            writeToEditor(str)
+        else
+            writeToBuffer(str)
+    }
+
+    fun writeToConsole(str: String){
+        print(str)
+    }
+
+    fun writeToBuffer(str: String){
+        scriptBuffer.append(str)
+    }
+
+    fun writeToEditor(str: String){
+        if (GuiRecorderComponent.getFrame() != null && GuiRecorderComponent.getFrame()!!.getEditor() != null) {
+            val editor = GuiRecorderComponent.getFrame()!!.getEditor()
+            val document = editor.document
+//            ApplicationManager.getApplication().runWriteAction { document.insertString(document.textLength, str) }
+            WriteCommandAction.runWriteCommandAction(null, {document.insertString(document.textLength, str)})
+        }
     }
 }
 
-private object Typer{
+private object Typer {
     val strBuffer = StringBuilder()
     val rawBuffer = StringBuilder()
 
     fun type(keyChar: Char) {
         strBuffer.append(KeyUtil.patch(keyChar))
-        rawBuffer.append("${if(rawBuffer.length > 0) ", " else ""}\"${keyChar.toInt()}\"")
+        rawBuffer.append("${if (rawBuffer.length > 0) ", " else ""}\"${keyChar.toInt()}\"")
     }
 
     fun flushBuffer() {
         if (strBuffer.length == 0) return
-        Writer.write("//typed:[${strBuffer.length},\"${strBuffer.toString()}\", raw=[${rawBuffer.toString()}]]")
-        Writer.write(Templates.typeText(strBuffer.toString()))
+        Writer.writeln("//typed:[${strBuffer.length},\"${strBuffer.toString()}\", raw=[${rawBuffer.toString()}]]")
+        Writer.writeln(Templates.typeText(strBuffer.toString()))
         strBuffer.setLength(0)
         rawBuffer.setLength(0)
     }
@@ -177,12 +259,15 @@ private object Templates {
     fun clickFrameworksTree(itemName: String) = "selectFramework(\"$itemName\")"
     fun clickJBCheckBox(text: String) = "JBCheckBoxFixture.findByText(\"$text\", this.target(), robot(), true).click()"
     fun clickJCheckBox(text: String) = "CheckBoxFixture.findByText(\"$text\", this.target(), robot(), true).click()"
+
+    fun onJComboBox(text: String) = "GuiTestUtil.findComboBox(robot(), this.target(), \"$text\")"
+    fun selectComboBox(itemName: String) = ".selectItem(\"$itemName\")"
 }
 
 
 private class Contexts() {
 
-    enum class Type {DIALOG, WELCOME_FRAME, PROJECT_WIZARD, IDE_FRAME}
+    enum class Type {DIALOG, WELCOME_FRAME, PROJECT_WIZARD, IDE_FRAME }
 
     var dialogCount = 0
     var currentContextType: Type? = null
