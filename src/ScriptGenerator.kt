@@ -1,7 +1,9 @@
 import ScriptGenerator.scriptBuffer
 import com.intellij.ide.util.newProjectWizard.FrameworksTree
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.testGuiFramework.framework.GuiTestUtil
+import com.intellij.ui.KeyStrokeAdapter
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBList
 import components.GuiRecorderComponent
@@ -12,7 +14,9 @@ import ui.GuiScriptEditorFrame
 import ui.KeyUtil
 import java.awt.Component
 import java.awt.Container
+import java.awt.event.KeyEvent
 import javax.swing.*
+import javax.swing.KeyStroke.getKeyStrokeForEvent
 
 /**
  * @author Sergey Karashevich
@@ -65,6 +69,22 @@ object ScriptGenerator {
 
     fun processTyping(keyChar: Char) {
         Typer.type(keyChar)
+    }
+
+    //(keyEvent.id == KeyEvent.KEY_PRESSED) for all events here
+    fun  processKeyPressing(keyEvent: KeyEvent) {
+        //retrieve shortcut here
+        val keyStroke = getKeyStrokeForEvent(keyEvent)
+        val actionIds = KeymapManager.getInstance().activeKeymap.getActionIds(keyStroke)
+        if (!actionIds.isEmpty()) {
+            val firstActionId = actionIds[0]
+            if (IgnoredActions.ignore(firstActionId)) return
+            val keyStrokeStr = KeyStrokeAdapter.toString(keyStroke)
+            if (IgnoredActions.ignore(keyStrokeStr)) return
+            Writer.writeln(Templates.invokeActionComment(firstActionId))
+            makeIndent()
+            Writer.writeln(Templates.invokeAction(keyStrokeStr))
+        }
     }
 
     fun flushTyping() {
@@ -206,6 +226,10 @@ object ScriptGenerator {
         Writer.write("  ")
     }
 
+    fun clearContext(){
+        currentContextComponent = null
+    }
+
 }
 
 private object Writer {
@@ -286,6 +310,10 @@ private object Templates {
     fun onJComboBox(text: String) = "GuiTestUtil.findComboBox(robot(), this.target(), \"$text\")"
     fun selectComboBox(itemName: String) = ".selectItem(\"$itemName\")"
     fun clickRadioButton(text: String) = "GuiTestUtil.findRadioButton(robot(), this.target(), \"$text\").select()"
+
+    fun invokeActionComment(actionId: String) = "//invoke an action \"$actionId\" via keystroke string "
+    fun invokeAction(keyStrokeStr: String) = "GuiTestUtil.invokeActionViaShortcut(robot(), \"$keyStrokeStr\")"
+
 }
 
 
@@ -328,5 +356,13 @@ private class Contexts() {
     }
 
     fun closeContext() = "}"
+}
+
+object IgnoredActions {
+
+    val ignoreActions = listOf("EditorBackSpace")
+    val ignoreShortcuts = listOf("space")
+
+    fun ignore(actionOrShortCut: String): Boolean = (ignoreActions.contains(actionOrShortCut) || ignoreShortcuts.contains(actionOrShortCut))
 }
 

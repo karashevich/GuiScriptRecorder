@@ -4,7 +4,7 @@
   <version>0.1</version>
   <vendor email="sergey.karashevich@jetbrains.com" url="http://jetbrains.com">JetBrains</vendor>
 
-  <description>Plugin helps to generate GUI Tests for IntelliJ based IDEs</description>
+  <description>Plugin helps generate GUI Tests for IntelliJ based IDEs</description>
 
   <change-notes> </change-notes>
 

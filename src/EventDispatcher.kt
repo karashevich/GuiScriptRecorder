@@ -7,6 +7,7 @@ import com.intellij.platform.ProjectTemplate
 import com.intellij.ui.components.JBList
 import com.intellij.ui.popup.PopupFactoryImpl
 import com.intellij.util.containers.HashMap
+import ui.GuiScriptEditorFrame
 import java.awt.Component
 import java.awt.Container
 import java.awt.KeyboardFocusManager
@@ -22,9 +23,9 @@ import javax.swing.SwingUtilities
 /**
  * @author Sergey Karashevich
  */
-object EventProcessor {
+object EventDispatcher {
 
-    val LOG = Logger.getInstance(EventProcessor::class.java)
+    val LOG = Logger.getInstance(EventDispatcher::class.java)
 
     fun processMouseEvent(me: MouseEvent) {
 
@@ -36,6 +37,8 @@ object EventProcessor {
         val clickCount = me.clickCount
 
         if (component is JFrame) {
+            if (component.title == GuiScriptEditorFrame.GUI_SCRIPT_FRAME_TITLE) return // ignore mouse events from GUI Script Editor Frame
+
             val layeredPane = component.layeredPane
             val pt = SwingUtilities.convertPoint(component, mousePoint, layeredPane)
             component = layeredPane.findComponentAt(pt)
@@ -106,8 +109,11 @@ object EventProcessor {
     }
 
     fun processKeyBoardEvent(keyEvent: KeyEvent) {
+        if (keyEvent.component is JFrame  && (keyEvent.component as JFrame).title == GuiScriptEditorFrame.GUI_SCRIPT_FRAME_TITLE) return
         if (keyEvent.id == KeyEvent.KEY_TYPED)
             ScriptGenerator.processTyping(keyEvent.keyChar)
+        if (keyEvent.id == KeyEvent.KEY_PRESSED)
+            ScriptGenerator.processKeyPressing(keyEvent)
     }
 
     fun  processActionEvent(anActionEvent: AnActionEvent?) {

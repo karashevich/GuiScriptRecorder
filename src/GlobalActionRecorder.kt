@@ -24,7 +24,7 @@ object GlobalActionRecorder {
 
     private val globalActionListener = object : AnActionListener {
         override fun beforeActionPerformed(p0: AnAction?, p1: DataContext?, p2: AnActionEvent?) {
-            EventProcessor.processActionEvent(p2)
+            EventDispatcher.processActionEvent(p2)
             LOG.info("IDEA is going to perform action ${p0!!.templatePresentation.text}")
         }
 
@@ -41,8 +41,8 @@ object GlobalActionRecorder {
 
         override fun dispatch(awtEvent: AWTEvent): Boolean {
             when (awtEvent) {
-                is MouseEvent -> EventProcessor.processMouseEvent(awtEvent)
-                is KeyEvent -> EventProcessor.processKeyBoardEvent(awtEvent)
+                is MouseEvent -> EventDispatcher.processMouseEvent(awtEvent)
+                is KeyEvent -> EventDispatcher.processKeyBoardEvent(awtEvent)
             }
             return false
         }
@@ -61,8 +61,10 @@ object GlobalActionRecorder {
             LOG.info("Global action recorder is non active")
             ActionManager.getInstance().removeAnActionListener(globalActionListener)
             IdeEventQueue.getInstance().removeDispatcher(globalAwtProcessor)
+
         }
         active = false
+        ScriptGenerator.clearContext()
     }
 
 }
