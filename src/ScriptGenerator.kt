@@ -1,11 +1,13 @@
 import ScriptGenerator.scriptBuffer
 import com.intellij.ide.util.newProjectWizard.FrameworksTree
+import com.intellij.openapi.actionSystem.AnAction
+import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.testGuiFramework.framework.GuiTestUtil
 import com.intellij.ui.KeyStrokeAdapter
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBList
+import com.intellij.ui.treeStructure.SimpleTree
 import components.GuiRecorderComponent
 import org.fest.swing.core.BasicRobot
 import org.fest.swing.core.GenericTypeMatcher
@@ -72,20 +74,37 @@ object ScriptGenerator {
     }
 
     //(keyEvent.id == KeyEvent.KEY_PRESSED) for all events here
-    fun  processKeyPressing(keyEvent: KeyEvent) {
+    fun processKeyPressing(keyEvent: KeyEvent) {
         //retrieve shortcut here
-        val keyStroke = getKeyStrokeForEvent(keyEvent)
-        val actionIds = KeymapManager.getInstance().activeKeymap.getActionIds(keyStroke)
-        if (!actionIds.isEmpty()) {
-            val firstActionId = actionIds[0]
-            if (IgnoredActions.ignore(firstActionId)) return
-            val keyStrokeStr = KeyStrokeAdapter.toString(keyStroke)
-            if (IgnoredActions.ignore(keyStrokeStr)) return
-            Writer.writeln(Templates.invokeActionComment(firstActionId))
-            makeIndent()
-            Writer.writeln(Templates.invokeAction(keyStrokeStr))
-        }
+//        val keyStroke = getKeyStrokeForEvent(keyEvent)
+//        val actionIds = KeymapManager.getInstance().activeKeymap.getActionIds(keyStroke)
+//        if (!actionIds.isEmpty()) {
+//            val firstActionId = actionIds[0]
+//            if (IgnoredActions.ignore(firstActionId)) return
+//            val keyStrokeStr = KeyStrokeAdapter.toString(keyStroke)
+//            if (IgnoredActions.ignore(keyStrokeStr)) return
+//            Writer.writeln(Templates.invokeActionComment(firstActionId))
+//            makeIndent()
+//            Writer.writeln(Templates.invokeAction(keyStrokeStr))
+//        }
     }
+
+    fun processKeyActionEvent(anAction: AnAction, anActionEvent: AnActionEvent) {
+        //retrieve shortcut here
+        val keyEvent = anActionEvent.inputEvent as KeyEvent
+        val keyStroke = getKeyStrokeForEvent(keyEvent)
+        val actionId = anActionEvent.actionManager.getId(anAction)
+        if (IgnoredActions.ignore(actionId)) return
+        val keyStrokeStr = KeyStrokeAdapter.toString(keyStroke)
+        if (IgnoredActions.ignore(keyStrokeStr)) return
+        ScriptGenerator.flushTyping()
+
+        Writer.writeln(Templates.invokeActionComment(actionId))
+        makeIndent()
+        Writer.writeln(Templates.invokeAction(keyStrokeStr))
+
+    }
+
 
     fun flushTyping() {
         Typer.flushBuffer()
@@ -120,7 +139,7 @@ object ScriptGenerator {
                     Writer.writeln(Templates.clickListItem(itemName!!))
             }
             is JList<*> -> {
-                if (cmp.javaClass.name.contains("BasicComboPopup")){
+                if (cmp.javaClass.name.contains("BasicComboPopup")) {
                     if (openComboBox) {
                         Writer.writeln(Templates.selectComboBox(itemName!!))
                         openComboBox = false
@@ -133,6 +152,7 @@ object ScriptGenerator {
 
             }
             is FrameworksTree -> Writer.writeln(Templates.clickFrameworksTree(itemName!!))
+            is SimpleTree -> Writer.writeln("//Simple tree dummy")
             is JBCheckBox -> Writer.writeln(Templates.clickJBCheckBox(cmp.text))
             is JCheckBox -> Writer.writeln(Templates.clickJCheckBox(cmp.text))
             is JComboBox<*> -> {
@@ -226,9 +246,10 @@ object ScriptGenerator {
         Writer.write("  ")
     }
 
-    fun clearContext(){
+    fun clearContext() {
         currentContextComponent = null
     }
+
 
 }
 
@@ -246,20 +267,20 @@ private object Writer {
             writeToBuffer(str)
     }
 
-    fun writeToConsole(str: String){
+    fun writeToConsole(str: String) {
         print(str)
     }
 
-    fun writeToBuffer(str: String){
+    fun writeToBuffer(str: String) {
         scriptBuffer.append(str)
     }
 
-    fun writeToEditor(str: String){
+    fun writeToEditor(str: String) {
         if (GuiRecorderComponent.getFrame() != null && GuiRecorderComponent.getFrame()!!.getEditor() != null) {
             val editor = GuiRecorderComponent.getFrame()!!.getEditor()
             val document = editor.document
 //            ApplicationManager.getApplication().runWriteAction { document.insertString(document.textLength, str) }
-            WriteCommandAction.runWriteCommandAction(null, {document.insertString(document.textLength, str)})
+            WriteCommandAction.runWriteCommandAction(null, { document.insertString(document.textLength, str) })
         }
     }
 }
@@ -304,6 +325,7 @@ private object Templates {
 
     fun typeText(text: String) = "GuiTestUtil.typeText(\"$text\", robot(), 10)"
     fun clickFrameworksTree(itemName: String) = "selectFramework(\"$itemName\")"
+    fun clickSimpleTree(itemName: String) = "J"
     fun clickJBCheckBox(text: String) = "JBCheckBoxFixture.findByText(\"$text\", this.target(), robot(), true).click()"
     fun clickJCheckBox(text: String) = "CheckBoxFixture.findByText(\"$text\", this.target(), robot(), true).click()"
 
@@ -338,7 +360,7 @@ private class Contexts() {
     fun projectWizardContextStart(): String {
         currentContextType = Type.PROJECT_WIZARD
         val name = "projectWizard"
-        val findProjectWizard = (if(projectWizardFind) "" else "var ") + Templates.findProjectWizard(name)
+        val findProjectWizard = (if (projectWizardFind) "" else "var ") + Templates.findProjectWizard(name)
         val withProjectWizard = Templates.withProjectWizard(name)
         projectWizardFind = true
 
@@ -348,7 +370,7 @@ private class Contexts() {
     fun welcomeFrameStart(): String {
         currentContextType = Type.WELCOME_FRAME
         val name = "welcomeFrame"
-        val findWelcomeFrame = (if(welcomeFrameFind) "" else "var ") + Templates.findWelcomeFrame(name)
+        val findWelcomeFrame = (if (welcomeFrameFind) "" else "var ") + Templates.findWelcomeFrame(name)
         val withWelcomeFrame = Templates.withWelcomeFrame(name)
         welcomeFrameFind = true
 

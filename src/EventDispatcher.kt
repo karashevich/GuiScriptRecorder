@@ -1,11 +1,13 @@
 import com.intellij.framework.PresentableVersion
 import com.intellij.ide.util.frameworkSupport.FrameworkVersion
 import com.intellij.ide.util.newProjectWizard.FrameworksTree
+import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.platform.ProjectTemplate
 import com.intellij.ui.components.JBList
 import com.intellij.ui.popup.PopupFactoryImpl
+import com.intellij.ui.treeStructure.SimpleTree
 import com.intellij.util.containers.HashMap
 import ui.GuiScriptEditorFrame
 import java.awt.Component
@@ -18,6 +20,7 @@ import java.awt.event.MouseEvent.BUTTON1
 import java.awt.event.MouseEvent.MOUSE_PRESSED
 import javax.swing.JFrame
 import javax.swing.JList
+import javax.swing.RootPaneContainer
 import javax.swing.SwingUtilities
 
 /**
@@ -36,8 +39,10 @@ object EventDispatcher {
         val mousePoint = me.point
         val clickCount = me.clickCount
 
-        if (component is JFrame) {
+        if (component is JFrame)
             if (component.title == GuiScriptEditorFrame.GUI_SCRIPT_FRAME_TITLE) return // ignore mouse events from GUI Script Editor Frame
+
+        if (component is RootPaneContainer) {
 
             val layeredPane = component.layeredPane
             val pt = SwingUtilities.convertPoint(component, mousePoint, layeredPane)
@@ -50,28 +55,17 @@ object EventDispatcher {
             component = KeyboardFocusManager.getCurrentKeyboardFocusManager().focusOwner
         }
         if (component != null) {
-            //user click
             var itemName: String? = null
             val dataMap = HashMap<String, Any>()
             dataMap.put("Component", component)
-            if (component is JList<*>) {
-                val convertedPoint = Point(
-                        me.locationOnScreen.x - component.locationOnScreen.x,
-                        me.locationOnScreen.y - component.locationOnScreen.y)
-                itemName = getCellText((component as JList<*>?)!!, convertedPoint)
-            }
-            if (component is JBList<*>) {
-                val convertedPoint = Point(
-                        me.locationOnScreen.x - component.locationOnScreen.x,
-                        me.locationOnScreen.y - component.locationOnScreen.y)
-                itemName = getCellText((component as JBList<*>?)!!, convertedPoint)
-            }
-            if (component is FrameworksTree) {
-                val ft = (component as FrameworksTree)
-                val convertedPoint = Point(
-                        me.locationOnScreen.x - ft.locationOnScreen.x,
-                        me.locationOnScreen.y - ft.locationOnScreen.y)
-                itemName = ft.getClosestPathForLocation(convertedPoint.x, convertedPoint.y).lastPathComponent.toString()
+            val convertedPoint = Point(
+                    me.locationOnScreen.x - component.locationOnScreen.x,
+                    me.locationOnScreen.y - component.locationOnScreen.y)
+            when(component) {
+                is JList<*> -> itemName = getCellText((component as JList<*>?)!!, convertedPoint)
+                is JBList<*> -> itemName = getCellText((component as JBList<*>?)!!, convertedPoint)
+                is FrameworksTree -> itemName = component.getClosestPathForLocation(convertedPoint.x, convertedPoint.y).lastPathComponent.toString()
+                is SimpleTree -> itemName = component.getDeepestRendererComponentAt(convertedPoint.x, convertedPoint.y).toString()
             }
             LOG.info("Delegate click from component:${component}")
             ScriptGenerator.clickCmp(component, itemName, clickCount)
@@ -112,12 +106,11 @@ object EventDispatcher {
         if (keyEvent.component is JFrame  && (keyEvent.component as JFrame).title == GuiScriptEditorFrame.GUI_SCRIPT_FRAME_TITLE) return
         if (keyEvent.id == KeyEvent.KEY_TYPED)
             ScriptGenerator.processTyping(keyEvent.keyChar)
-        if (keyEvent.id == KeyEvent.KEY_PRESSED)
-            ScriptGenerator.processKeyPressing(keyEvent)
+//        if (keyEvent.id == KeyEvent.KEY_PRESSED)
+//            ScriptGenerator.processKeyPressing(keyEvent)
     }
 
-    fun  processActionEvent(anActionEvent: AnActionEvent?) {
-        if (anActionEvent!!.inputEvent is KeyEvent) return
-        ScriptGenerator.flushTyping()
+    fun  processActionEvent(anActionTobePerformed: AnAction, anActionEvent: AnActionEvent?) {
+        if (anActionEvent!!.inputEvent is KeyEvent) ScriptGenerator.processKeyActionEvent(anActionTobePerformed, anActionEvent)
     }
 }

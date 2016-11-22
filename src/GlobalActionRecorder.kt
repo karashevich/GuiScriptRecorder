@@ -23,9 +23,9 @@ object GlobalActionRecorder {
     fun isActive() = active
 
     private val globalActionListener = object : AnActionListener {
-        override fun beforeActionPerformed(p0: AnAction?, p1: DataContext?, p2: AnActionEvent?) {
-            EventDispatcher.processActionEvent(p2)
-            LOG.info("IDEA is going to perform action ${p0!!.templatePresentation.text}")
+        override fun beforeActionPerformed(anActionToBePerformed: AnAction?, p1: DataContext?, anActionEvent: AnActionEvent?) {
+            EventDispatcher.processActionEvent(anActionToBePerformed!!, anActionEvent)
+            LOG.info("IDEA is going to perform action ${anActionToBePerformed.templatePresentation.text}")
         }
 
         override fun beforeEditorTyping(p0: Char, p1: DataContext?) {
