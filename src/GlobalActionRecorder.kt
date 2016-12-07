@@ -22,6 +22,7 @@ object GlobalActionRecorder {
 
     fun isActive() = active
 
+
     private val globalActionListener = object : AnActionListener {
         override fun beforeActionPerformed(anActionToBePerformed: AnAction?, p1: DataContext?, anActionEvent: AnActionEvent?) {
             EventDispatcher.processActionEvent(anActionToBePerformed!!, anActionEvent)
@@ -33,7 +34,7 @@ object GlobalActionRecorder {
         }
 
         override fun afterActionPerformed(p0: AnAction?, p1: DataContext?, p2: AnActionEvent?) {
-            LOG.info("IDEA action performed${p0!!.templatePresentation.text}")
+            LOG.info("IDEA action performed ${p0!!.templatePresentation.text}")
         }
     }
 

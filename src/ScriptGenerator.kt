@@ -1,13 +1,19 @@
 import ScriptGenerator.scriptBuffer
 import com.intellij.ide.util.newProjectWizard.FrameworksTree
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.util.Ref
+import com.intellij.openapi.wm.WindowManager
+import com.intellij.testGuiFramework.fixtures.SettingsTreeFixture
 import com.intellij.testGuiFramework.framework.GuiTestUtil
 import com.intellij.ui.KeyStrokeAdapter
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBList
 import com.intellij.ui.treeStructure.SimpleTree
+import com.intellij.util.ui.tree.TreeUtil
 import components.GuiRecorderComponent
 import org.fest.swing.core.BasicRobot
 import org.fest.swing.core.GenericTypeMatcher
@@ -16,9 +22,12 @@ import ui.GuiScriptEditorFrame
 import ui.KeyUtil
 import java.awt.Component
 import java.awt.Container
+import java.awt.Menu
+import java.awt.MenuItem
 import java.awt.event.KeyEvent
 import javax.swing.*
 import javax.swing.KeyStroke.getKeyStrokeForEvent
+import javax.swing.tree.TreeNode
 
 /**
  * @author Sergey Karashevich
@@ -53,7 +62,6 @@ object ScriptGenerator {
         val postfix = "} \n setUp() \n" +
                 "testGitImport()"
         return "$import \n " +
-                //                "$injection \n " +
                 "$testFun \n" +
                 "$body \n " +
                 "$postfix"
@@ -105,6 +113,11 @@ object ScriptGenerator {
 
     }
 
+    fun processMainMenuActionEvent(anActionTobePerformed: AnAction, anActionEvent: AnActionEvent) {
+        val pathWithSemicolon = Util.getPathFromMainMenu(anActionTobePerformed, anActionEvent)
+        Writer.writeln(Templates.invokeMainMenuAction(pathWithSemicolon!!.split(";").toTypedArray()))
+    }
+
 
     fun flushTyping() {
         Typer.flushBuffer()
@@ -115,6 +128,7 @@ object ScriptGenerator {
         checkContext(cmp)
         when (cmp) {
             is JButton -> Writer.writeln(Templates.findAndClickButton(cmp.text))
+            is ActionButton -> Writer.writeln(Templates.findAndClickActionButton(ActionManager.getInstance().getId(cmp.action)))
             is com.intellij.ui.components.labels.ActionLink -> Writer.writeln(Templates.clickActionLink(cmp.text))
             is JTextField -> {
                 if (clickCount == 1) {
@@ -152,7 +166,7 @@ object ScriptGenerator {
 
             }
             is FrameworksTree -> Writer.writeln(Templates.clickFrameworksTree(itemName!!))
-            is SimpleTree -> Writer.writeln("//Simple tree dummy")
+            is SimpleTree -> Writer.writeln(Templates.selectSimpleTreeItem(Util.convertSimpleTreeItemToPath(cmp as SimpleTree, itemName!!)))
             is JBCheckBox -> Writer.writeln(Templates.clickJBCheckBox(cmp.text))
             is JCheckBox -> Writer.writeln(Templates.clickJCheckBox(cmp.text))
             is JComboBox<*> -> {
@@ -233,7 +247,8 @@ object ScriptGenerator {
                     return
                 }
                 is JFrame -> {
-                    println("is JFrame")
+                    Writer.writeln(currentContext.ideFrameStart())
+                    makeIndent()
                     return
                 }
             }
@@ -311,40 +326,52 @@ private object Templates {
     fun withProjectWizard(name: String) = "with (${name}){"
     fun findWelcomeFrame(name: String) = "${name} = findWelcomeFrame()"
     fun withWelcomeFrame(name: String) = "with (${name}){"
+    fun findIdeFrame(name: String) = "${name} = findIdeFrame()"
+    fun withIdeFrame(name: String) = "with (${name}){"
 
     fun findAndClickButton(text: String) = "GuiTestUtil.findAndClickButton(this, \"${text}\")"
+    fun findAndClickActionButton(actionId: String) = "ActionButtonFixture.findByActionId(\"${actionId}\", robot(), this.target()).click()"
+
     fun clickActionLink(text: String) = "ActionLinkFixture.findActionLinkByName(\"${text}\", robot(), this.target()).click()"
-
     fun clickPopupItem(itemName: String) = "GuiTestUtil.clickPopupMenuItem(\"${itemName}\", true, this.target(), robot())"
-    fun clickListItem(name: String) = "JListFixture(robot(), robot().finder().findByType(this.target(), com.intellij.ui.components.JBList::class.java, true)).clickItem(\"$name\")"
 
+    fun clickListItem(name: String) = "JListFixture(robot(), robot().finder().findByType(this.target(), com.intellij.ui.components.JBList::class.java, true)).clickItem(\"$name\")"
     fun findJTextField() = "val textField = myRobot.finder().findByType(JTextField::class.java)"
     fun findJTextFieldByLabel(labelText: String) = "val textField = findTextField(\"${labelText}\").click()"
     fun findJTextFieldAndDoubleClick() = "val textField = myRobot.finder().findByType(JTextField::class.java).doubleClick()"
-    fun findJTextFieldByLabelAndDoubleClick(labelText: String) = "val textField = findTextField(\"${labelText}\").doubleClick()"
 
+    fun findJTextFieldByLabelAndDoubleClick(labelText: String) = "val textField = findTextField(\"${labelText}\").doubleClick()"
     fun typeText(text: String) = "GuiTestUtil.typeText(\"$text\", robot(), 10)"
     fun clickFrameworksTree(itemName: String) = "selectFramework(\"$itemName\")"
-    fun clickSimpleTree(itemName: String) = "J"
+    fun selectSimpleTreeItem(path: String) = "SettingsTreeFixture.find(robot()).select(\"$path\")"
     fun clickJBCheckBox(text: String) = "JBCheckBoxFixture.findByText(\"$text\", this.target(), robot(), true).click()"
-    fun clickJCheckBox(text: String) = "CheckBoxFixture.findByText(\"$text\", this.target(), robot(), true).click()"
 
+    fun clickJCheckBox(text: String) = "CheckBoxFixture.findByText(\"$text\", this.target(), robot(), true).click()"
     fun onJComboBox(text: String) = "GuiTestUtil.findComboBox(robot(), this.target(), \"$text\")"
     fun selectComboBox(itemName: String) = ".selectItem(\"$itemName\")"
-    fun clickRadioButton(text: String) = "GuiTestUtil.findRadioButton(robot(), this.target(), \"$text\").select()"
 
+    fun clickRadioButton(text: String) = "GuiTestUtil.findRadioButton(robot(), this.target(), \"$text\").select()"
     fun invokeActionComment(actionId: String) = "//invoke an action \"$actionId\" via keystroke string "
+
     fun invokeAction(keyStrokeStr: String) = "GuiTestUtil.invokeActionViaShortcut(robot(), \"$keyStrokeStr\")"
+    fun invokeMainMenuAction(menuPath: Array<String>) = "${Contexts.IDE_FRAME_VAL}.invokeMenuPath(${menuPath.joinToString { "\"$it\"" } })"
 
 }
 
 
-private class Contexts() {
+class Contexts() {
 
     enum class Type {DIALOG, WELCOME_FRAME, PROJECT_WIZARD, IDE_FRAME }
 
-    private var projectWizardFind = false
-    private var welcomeFrameFind = false
+    private var projectWizardFound = false
+    private var welcomeFrameFound = false
+    private var ideFrameFound = false
+
+    companion object {
+        val PROJECT_WIZARD_VAL = "projectWizard"
+        val WELCOME_FRAME_VAL = "welcomeFrame"
+        val IDE_FRAME_VAL = "ideFrame"
+    }
 
     var dialogCount = 0
     var currentContextType: Type? = null
@@ -359,22 +386,29 @@ private class Contexts() {
 
     fun projectWizardContextStart(): String {
         currentContextType = Type.PROJECT_WIZARD
-        val name = "projectWizard"
-        val findProjectWizard = (if (projectWizardFind) "" else "var ") + Templates.findProjectWizard(name)
-        val withProjectWizard = Templates.withProjectWizard(name)
-        projectWizardFind = true
+        val findProjectWizard = (if (projectWizardFound) "" else "var ") + Templates.findProjectWizard(PROJECT_WIZARD_VAL)
+        val withProjectWizard = Templates.withProjectWizard(PROJECT_WIZARD_VAL)
+        projectWizardFound = true
 
         return findProjectWizard + "\n" + withProjectWizard
     }
 
     fun welcomeFrameStart(): String {
         currentContextType = Type.WELCOME_FRAME
-        val name = "welcomeFrame"
-        val findWelcomeFrame = (if (welcomeFrameFind) "" else "var ") + Templates.findWelcomeFrame(name)
-        val withWelcomeFrame = Templates.withWelcomeFrame(name)
-        welcomeFrameFind = true
+        val findWelcomeFrame = (if (welcomeFrameFound) "" else "var ") + Templates.findWelcomeFrame(WELCOME_FRAME_VAL)
+        val withWelcomeFrame = Templates.withWelcomeFrame(WELCOME_FRAME_VAL)
+        welcomeFrameFound = true
 
         return findWelcomeFrame + "\n" + withWelcomeFrame
+    }
+
+    fun ideFrameStart(): String {
+        currentContextType = Type.IDE_FRAME
+        val findIdeFrame = (if (ideFrameFound) "" else "var ") + Templates.findIdeFrame(IDE_FRAME_VAL)
+        val withIdeFrame = Templates.withIdeFrame(IDE_FRAME_VAL)
+        welcomeFrameFound = true
+
+        return findIdeFrame + "\n" + withIdeFrame
     }
 
     fun closeContext() = "}"
@@ -388,3 +422,45 @@ object IgnoredActions {
     fun ignore(actionOrShortCut: String): Boolean = (ignoreActions.contains(actionOrShortCut) || ignoreShortcuts.contains(actionOrShortCut))
 }
 
+object Util {
+    fun getPathFromMainMenu(anActionTobePerformed: AnAction, anActionEvent: AnActionEvent): String? {
+//        WindowManager.getInstance().findVisibleFrame().menuBar.getMenu(0).label
+        val menuBar = WindowManager.getInstance().findVisibleFrame().menuBar
+        //in fact it should be only one String in "map"
+        return (0..(menuBar.menuCount - 1)).mapNotNull { traverseMenu(menuBar.getMenu(it), anActionTobePerformed.templatePresentation.text!!) }.last()
+    }
+
+    fun traverseMenu(menuItem: MenuItem, itemName: String): String? {
+        if (menuItem is Menu) {
+            if (menuItem.itemCount == 0) {
+                if (menuItem.label == itemName) return itemName
+                else return null
+            } else {
+                (0..(menuItem.itemCount - 1))
+                        .mapNotNull { traverseMenu(menuItem.getItem(it), itemName) }
+                        .forEach { return "${menuItem.label};$it" }
+                return null
+            }
+        } else {
+            if (menuItem.label == itemName) return itemName
+            else return null
+        }
+    }
+
+    fun convertSimpleTreeItemToPath(tree: SimpleTree, itemName: String): String {
+        val searchableNodeRef = Ref.create<TreeNode>()
+        val searchableNode: TreeNode?
+        TreeUtil.traverse(tree.getModel().getRoot() as TreeNode) { node ->
+            val valueFromNode = SettingsTreeFixture.getValueFromNode(tree, node)
+            if (valueFromNode != null && valueFromNode == itemName) {
+                assert(node is TreeNode)
+                searchableNodeRef.set(node as TreeNode)
+            }
+            true
+        }
+        searchableNode = searchableNodeRef.get()
+        val path = TreeUtil.getPathFromRoot(searchableNode!!)
+        return path.toString().removePrefix("[").removeSuffix("]").split(",").filter(String::isNotEmpty).map(String::trim).joinToString("/")
+    }
+
+}

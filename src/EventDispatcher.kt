@@ -1,6 +1,7 @@
 import com.intellij.framework.PresentableVersion
 import com.intellij.ide.util.frameworkSupport.FrameworkVersion
 import com.intellij.ide.util.newProjectWizard.FrameworksTree
+import com.intellij.openapi.actionSystem.ActionPlaces
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.diagnostic.Logger
@@ -112,5 +113,7 @@ object EventDispatcher {
 
     fun  processActionEvent(anActionTobePerformed: AnAction, anActionEvent: AnActionEvent?) {
         if (anActionEvent!!.inputEvent is KeyEvent) ScriptGenerator.processKeyActionEvent(anActionTobePerformed, anActionEvent)
+        if (anActionEvent.place == ActionPlaces.MAIN_MENU) ScriptGenerator.processMainMenuActionEvent(anActionTobePerformed, anActionEvent)
     }
+
 }

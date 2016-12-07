@@ -1,7 +1,7 @@
 <idea-plugin version="2">
   <id>GuiRecorderPlugin</id>
   <name>GUI Recorder</name>
-  <version>0.1</version>
+  <version>0.2</version>
   <vendor email="sergey.karashevich@jetbrains.com" url="http://jetbrains.com">JetBrains</vendor>
 
   <description>Plugin helps generate GUI Tests for IntelliJ based IDEs</description>
