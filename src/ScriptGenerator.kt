@@ -5,6 +5,8 @@ import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.editor.impl.EditorComponentImpl
+import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Ref
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.testGuiFramework.fixtures.SettingsTreeFixture
@@ -115,7 +117,7 @@ object ScriptGenerator {
 
     fun processMainMenuActionEvent(anActionTobePerformed: AnAction, anActionEvent: AnActionEvent) {
         val pathWithSemicolon = Util.getPathFromMainMenu(anActionTobePerformed, anActionEvent)
-        Writer.writeln(Templates.invokeMainMenuAction(pathWithSemicolon!!.split(";").toTypedArray()))
+        if (pathWithSemicolon != null) Writer.writeln(Templates.invokeMainMenuAction(pathWithSemicolon.split(";").toTypedArray()))
     }
 
 
@@ -177,6 +179,12 @@ object ScriptGenerator {
             is JRadioButton -> {
                 Writer.writeln(Templates.clickRadioButton(cmp.text))
             }
+            is EditorComponentImpl -> Writer.writeln(currentContext.editorActivate())
+            else -> if (cmp.inToolWindow()) {
+                    when (cmp.javaClass.toString()) {
+                         "class com.intellij.ide.projectView.impl.ProjectViewPane$1" -> Writer.writeln(currentContext.toolWindowActivate("Project"))
+                    }
+                }
         }
     }
 
@@ -188,6 +196,14 @@ object ScriptGenerator {
         return GuiTestUtil.findBoundedLabel(container, jTextField, robot)
     }
 
+    private fun Component.inToolWindow(): Boolean {
+        var pivotComponent = this
+        while(pivotComponent.parent != null) {
+            if (pivotComponent is SimpleToolWindowPanel) return true
+            else pivotComponent = pivotComponent.parent
+        }
+        return false
+    }
 
     //We are looking for a closest bounded label in a 2 levels of hierarchy for JComboBox component
     private fun getBoundedLabelForComboBox(cb: JComboBox<*>): JLabel {
@@ -266,6 +282,11 @@ object ScriptGenerator {
     }
 
 
+}
+
+private fun Any.inToolWindow(): Boolean {
+    if (this is Component) return true
+    else return false
 }
 
 private object Writer {
@@ -361,11 +382,13 @@ private object Templates {
 
 class Contexts() {
 
-    enum class Type {DIALOG, WELCOME_FRAME, PROJECT_WIZARD, IDE_FRAME }
+    enum class Type {DIALOG, WELCOME_FRAME, PROJECT_WIZARD, IDE_FRAME}
+    enum class SubType {EDITOR, TOOL_WINDOW}
 
     private var projectWizardFound = false
     private var welcomeFrameFound = false
     private var ideFrameFound = false
+    private var myToolWindowId: String? = null
 
     companion object {
         val PROJECT_WIZARD_VAL = "projectWizard"
@@ -375,6 +398,7 @@ class Contexts() {
 
     var dialogCount = 0
     var currentContextType: Type? = null
+    var currentSubContextType: SubType? = null
 
     fun dialogContextStart(title: String): String {
         currentContextType = Type.DIALOG
@@ -404,11 +428,22 @@ class Contexts() {
 
     fun ideFrameStart(): String {
         currentContextType = Type.IDE_FRAME
-        val findIdeFrame = (if (ideFrameFound) "" else "var ") + Templates.findIdeFrame(IDE_FRAME_VAL)
+        val findIdeFrame = (if (ideFrameFound) "" else "val ") + Templates.findIdeFrame(IDE_FRAME_VAL)
         val withIdeFrame = Templates.withIdeFrame(IDE_FRAME_VAL)
-        welcomeFrameFound = true
+        ideFrameFound = true
 
         return findIdeFrame + "\n" + withIdeFrame
+    }
+
+    fun editorActivate(): String {
+        currentSubContextType = SubType.EDITOR
+        return "EditorFixture(robot(), $IDE_FRAME_VAL).requestFocus()"
+    }
+
+    fun toolWindowActivate(toolWindowId: String? = null): String {
+        currentSubContextType = SubType.TOOL_WINDOW
+        myToolWindowId = toolWindowId
+        return "ToolWindowFixture(\"$toolWindowId\", $IDE_FRAME_VAL.getProject(), robot()).activate()"
     }
 
     fun closeContext() = "}"
@@ -425,9 +460,9 @@ object IgnoredActions {
 object Util {
     fun getPathFromMainMenu(anActionTobePerformed: AnAction, anActionEvent: AnActionEvent): String? {
 //        WindowManager.getInstance().findVisibleFrame().menuBar.getMenu(0).label
-        val menuBar = WindowManager.getInstance().findVisibleFrame().menuBar
+        val menuBar = WindowManager.getInstance().findVisibleFrame().menuBar ?: return null
         //in fact it should be only one String in "map"
-        return (0..(menuBar.menuCount - 1)).mapNotNull { traverseMenu(menuBar.getMenu(it), anActionTobePerformed.templatePresentation.text!!) }.last()
+        return (0..(menuBar.menuCount - 1)).mapNotNull { traverseMenu(menuBar.getMenu(it), anActionTobePerformed.templatePresentation.text!!) }.lastOrNull()
     }
 
     fun traverseMenu(menuItem: MenuItem, itemName: String): String? {

@@ -7,7 +7,7 @@ import com.intellij.testGuiFramework.fixtures.MessagesFixture
 import com.intellij.testGuiFramework.fixtures.ToolWindowFixture
 import com.intellij.testGuiFramework.fixtures.WelcomeFrameFixture
 import com.intellij.testGuiFramework.framework.GuiTestUtil
-import com.intellij.testGuiFramework.script.GuiTestCase
+import com.intellij.testGuiFramework.impl.GuiTestCase
 import com.intellij.ui.EditorComboBox
 import org.fest.swing.edt.GuiActionRunner
 import org.fest.swing.edt.GuiTask

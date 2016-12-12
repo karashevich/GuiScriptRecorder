@@ -3,6 +3,7 @@ package compile
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
+import compile.KotlinCompileUtil.forced_urls
 import junit.framework.Assert.assertNotNull
 import junit.framework.TestCase
 import org.jetbrains.kotlin.cli.common.repl.GenericReplCompiledEvaluator
@@ -24,7 +25,6 @@ import java.util.function.Consumer
 /**
  * @author Sergey Karashevich
  */
-
 
 object DaemonCompiler {
 
@@ -90,8 +90,9 @@ object DaemonCompiler {
 }
 
 fun getKotlinLibUrls(): List<URL> {
-    val url1 = DaemonCompiler::class.java.classLoader.getResource("libxx/kotlin-compiler.jar")
-    val url2 = DaemonCompiler::class.java.classLoader.getResource("libxx/kotlin-daemon-client.jar")
+    val kotlinPluginClassLoader = org.jetbrains.kotlin.daemon.client.KotlinRemoteReplCompiler::class.java.classLoader
+    val url1 = KotlinCompileUtil.getKotlinCompilerUrl(kotlinPluginClassLoader)
+    val url2: URL = kotlinPluginClassLoader.forced_urls().filter { it.toString().contains("kotlin-daemon-client.jar") }.single()
     return listOf(url1, url2)
 }
 

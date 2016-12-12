@@ -4,11 +4,16 @@ import GlobalActionRecorder
 import ScriptGenerator
 import ScriptGenerator.wrapScriptWithFunDef
 import actions.PerformScriptAction
+import com.intellij.ide.plugins.cl.PluginClassLoader
 import com.intellij.openapi.components.ServiceManager
+import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.StreamUtil
 import com.intellij.openapi.vfs.CharsetToolkit
 import com.intellij.testGuiFramework.script.GuiTestCases
+import com.intellij.util.io.URLUtil
 import com.intellij.util.lang.UrlClassLoader
+import java.io.File
 import java.net.URL
 import java.util.*
 import java.util.function.Consumer
@@ -18,10 +23,13 @@ import java.util.function.Consumer
  */
 object KotlinCompileUtil {
 
+    private val LOG by lazy { Logger.getInstance("#${KotlinCompileUtil::class.qualifiedName}") }
+
     fun compiledAndEvalWithNotifier(codeString: String, notifier: Consumer<String>){
 
         withDiffContextClassLoader {
             withIsolatedClassLoader { isolatedKotlinLibClassLoader ->
+                LOG.info(isolatedKotlinLibClassLoader.forced_urls().joinToString { it.toString() })
                 val daemonCompilerCls = isolatedKotlinLibClassLoader.loadClass(DaemonCompiler::class.qualifiedName)
                 val loadClassInstance = daemonCompilerCls.getField("INSTANCE").get(null)
 
@@ -59,15 +67,34 @@ object KotlinCompileUtil {
         val classLoader = DaemonCompiler::class.java.classLoader
         val urls = ArrayList<URL>()
 
-        urls.add(classLoader.getResource("compile/DaemonCompiler.class").getParentURL().getParentURL())
-        urls.add(classLoader.getResource("libxx/kotlin-compiler.jar"))
-        urls.add(classLoader.getResource("libxx/kotlin-daemon-client.jar"))
-        urls.add(classLoader.getResource("libxx/kotlin-runtime.jar"))
-        urls.add(classLoader.getResource("libxx/kotlin-reflect.jar"))
-        urls.add(classLoader.getResource("libxx/kotlin-script-runtime.jar"))
+        val requirementKotlinJars = arrayListOf("kotlin-daemon-client.jar",
+                "kotlin-runtime.jar",
+                "kotlin-reflect.jar",
+                "kotlin-script-runtime.jar")
+
+        val kotlinPluginClassLoader = org.jetbrains.kotlin.daemon.client.KotlinRemoteReplCompiler::class.java.classLoader
+        val kotlinJarsUrlList = kotlinPluginClassLoader.forced_urls().filter { requirementKotlinJars.contains(URLUtil.urlToFile(it).name) }
+
+        //add GuiScriptRecorder.jar or classes
+        val pluginJarUrl = (classLoader as PluginClassLoader).urls.filter { it.toString().endsWith("GuiScriptRecorder.jar") }.firstOrNull()
+
+        //add all jars to url list
+        urls.add(pluginJarUrl ?: classLoader.getResource("compile/DaemonCompiler.class").getParentURL().getParentURL())
+        urls.addAll(kotlinJarsUrlList)
+        urls.add(getKotlinCompilerUrl(kotlinPluginClassLoader))
         urls += getUrlFromUrlClassloader("junit")
 
         return urls
+    }
+
+    fun getKotlinCompilerUrl(kotlinPluginClassLoader: ClassLoader?): URL {
+
+        //find kotlin-compiler.jar and add it to url list
+        val urlBase = kotlinPluginClassLoader!!.forced_urls().first()
+        val providedFile = URLUtil.urlToFile(urlBase).parentFile.parentFile //jump up to Kotlin dir
+        var kotlinCompilerJarFile: File? = null
+        FileUtil.processFilesRecursively(providedFile, { file -> if (file.name == "kotlin-compiler.jar") kotlinCompilerJarFile = file; true })
+        return kotlinCompilerJarFile!!.toURI().toURL()
     }
 
     fun withDiffContextClassLoader(body: () -> Unit) {
