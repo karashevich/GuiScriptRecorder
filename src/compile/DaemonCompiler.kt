@@ -78,7 +78,7 @@ object DaemonCompiler {
 
     fun withDaemon(body: (CompileService) -> Unit) {
         withFlagFile("currentTest", ".alive") { flagFile ->
-            val daemonOptions = DaemonOptions(runFilesPath = (getRunFilesPath().path))
+            val daemonOptions = DaemonOptions(verbose = true, reportPerf = true)
             val daemonJVMOptions = configureDaemonJVMOptions(inheritMemoryLimits = false, inheritAdditionalProperties = false)
             val daemon: CompileService? = KotlinCompilerClient.connectToCompileService(compilerId, flagFile, daemonJVMOptions, daemonOptions, DaemonReportingTargets(out = System.err), autostart = true)
             assertNotNull("failed to connect daemon", daemon)
@@ -91,13 +91,11 @@ object DaemonCompiler {
 
 fun getKotlinLibUrls(): List<URL> {
     val kotlinPluginClassLoader = org.jetbrains.kotlin.daemon.client.KotlinRemoteReplCompiler::class.java.classLoader
-    val url1 = KotlinCompileUtil.getKotlinCompilerUrl(kotlinPluginClassLoader)
+    // should be added by previous call of kotlinPluginClassLoader KotlinComileUtil.getKotlinCompilerUrl()
+    val url1 = kotlinPluginClassLoader.forced_urls().filter { it.toString().contains("kotlin-compiler.jar") }.single()
     val url2: URL = kotlinPluginClassLoader.forced_urls().filter { it.toString().contains("kotlin-daemon-client.jar") }.single()
     return listOf(url1, url2)
 }
-
-fun getRunFilesPath() = DaemonCompiler::class.java.classLoader.getResource("compile/DaemonCompiler.class").toFile()!!.parentFile
-
 
 
 
