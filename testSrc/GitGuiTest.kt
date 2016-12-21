@@ -2,10 +2,7 @@ import com.intellij.dvcs.ui.CloneDvcsDialog
 import com.intellij.dvcs.ui.DvcsBundle
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.vcs.VcsBundle
-import com.intellij.testGuiFramework.fixtures.IdeaDialogFixture
-import com.intellij.testGuiFramework.fixtures.MessagesFixture
-import com.intellij.testGuiFramework.fixtures.ToolWindowFixture
-import com.intellij.testGuiFramework.fixtures.WelcomeFrameFixture
+import com.intellij.testGuiFramework.fixtures.*
 import com.intellij.testGuiFramework.framework.GuiTestUtil
 import com.intellij.testGuiFramework.impl.GuiTestCase
 import com.intellij.ui.EditorComboBox
@@ -42,7 +39,7 @@ class GitGuiTest : GuiTestCase() {
       GuiTestUtil.findAndClickButton(this, DvcsBundle.getString("clone.button"))
     }
     MessagesFixture.findByTitle(myRobot, welcomeFrame.target(), VcsBundle.message("checkout.title")).clickYes()
-    val dialog1 = com.intellij.testGuiFramework.fixtures.DialogFixture.find(myRobot, "Import Project")
+    val dialog1 = JDialogFixture.find(myRobot, "Import Project")
     with (dialog1) {
       GuiTestUtil.findAndClickButton(this, "Next")
       val textField = GuiTestUtil.findTextField(myRobot, "Project name:").click()

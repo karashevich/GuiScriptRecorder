@@ -30,6 +30,7 @@ import java.awt.event.KeyEvent
 import javax.swing.*
 import javax.swing.KeyStroke.getKeyStrokeForEvent
 import javax.swing.tree.TreeNode
+import javax.swing.tree.TreePath
 
 /**
  * @author Sergey Karashevich
@@ -180,6 +181,10 @@ object ScriptGenerator {
                 Writer.writeln(Templates.clickRadioButton(cmp.text))
             }
             is EditorComponentImpl -> Writer.writeln(currentContext.editorActivate())
+            is JTree -> {
+                Writer.writeln(Templates.selectTreePath(itemName!!))
+                Writer.writeln(Templates.selectTreePath(cmp.javaClass.name, itemName))
+            }
             else -> if (cmp.inToolWindow()) {
                     when (cmp.javaClass.toString()) {
                          "class com.intellij.ide.projectView.impl.ProjectViewPane$1" -> Writer.writeln(currentContext.toolWindowActivate("Project"))
@@ -241,7 +246,8 @@ object ScriptGenerator {
         val parent = cmp.rootPane.parent
         if (currentContextComponent != null && cmp.rootPane != currentContextComponent) {
             if (parent is JFrame && parent.title == GuiScriptEditorFrame.GUI_SCRIPT_FRAME_TITLE) return //do nothing if switch to GUI Script Editor
-            Writer.writeln(currentContext.closeContext())
+            if (currentContext.currentContextType != Contexts.Type.IDE_FRAME)
+                Writer.writeln(currentContext.closeContext())
         }
         if (currentContextComponent == null || cmp.rootPane != currentContextComponent) {
             currentContextComponent = cmp.rootPane
@@ -341,7 +347,7 @@ private object Typer {
 
 //TEMPLATES
 private object Templates {
-    fun findDialog(name: String, title: String?) = "val ${name} = DialogFixture.find(robot(), \"${title}\")"
+    fun findDialog(name: String, title: String?) = "val ${name} = JDialogFixture.find(robot(), \"${title}\")"
     fun withDialog(name: String) = "with (${name}){"
     fun findProjectWizard(name: String) = "${name} = findNewProjectWizard()"
     fun withProjectWizard(name: String) = "with (${name}){"
@@ -376,7 +382,8 @@ private object Templates {
 
     fun invokeAction(keyStrokeStr: String) = "GuiTestUtil.invokeActionViaShortcut(robot(), \"$keyStrokeStr\")"
     fun invokeMainMenuAction(menuPath: Array<String>) = "${Contexts.IDE_FRAME_VAL}.invokeMenuPath(${menuPath.joinToString { "\"$it\"" } })"
-
+    fun selectTreePath(path: String) = "GuiTestUtil.findJTreeFixture(robot(), this.target()).clickPath(\"$path\")"
+    fun selectTreePath(treeClass: String, path: String) = "//GuiTestUtil.findJTreeFixtureByClassName(robot(), this.target(), \"$treeClass\").clickPath(\"$path\")"
 }
 
 
@@ -496,6 +503,19 @@ object Util {
         searchableNode = searchableNodeRef.get()
         val path = TreeUtil.getPathFromRoot(searchableNode!!)
         return path.toString().removePrefix("[").removeSuffix("]").split(",").filter(String::isNotEmpty).map(String::trim).joinToString("/")
+    }
+
+    fun getJTreePath(cmp: JTree, path: TreePath): String {
+        var treePath = path
+        val result = StringBuilder()
+        val bcr = org.fest.swing.driver.BasicJTreeCellReader()
+        while (treePath.pathCount != 1 || (cmp.isRootVisible && treePath.pathCount == 1)) {
+            val valueAt = bcr.valueAt(cmp, treePath.lastPathComponent)
+            result.insert(0, "$valueAt${if (!result.isEmpty()) "/" else ""}")
+            if (treePath.pathCount == 1) break
+            else treePath = treePath.parentPath
+        }
+        return result.toString()
     }
 
 }

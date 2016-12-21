@@ -44,7 +44,7 @@ object DaemonCompiler {
         status("<long>Connecting to kotlin compile daemon")
         withDaemon { daemon ->
             withDisposable { disposable ->
-                val repl = KotlinRemoteReplCompiler(disposable, daemon!!, null, CompileService.TargetPlatform.JVM,
+                val repl = KotlinRemoteReplCompiler(disposable, daemon, null, CompileService.TargetPlatform.JVM,
                         classpathFromClassloader,
                         templateClassName,
                         System.err)
