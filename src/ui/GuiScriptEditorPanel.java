@@ -6,10 +6,8 @@ import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.editor.Editor;
-import com.intellij.openapi.util.SystemInfo;
 import com.intellij.openapi.wm.impl.status.TextPanel;
 import com.intellij.util.ui.AsyncProcessIcon;
-import com.intellij.util.ui.JBUI;
 
 import javax.swing.*;
 import java.awt.*;
@@ -30,7 +28,7 @@ public class GuiScriptEditorPanel {
 
     public GuiScriptEditorPanel() {
         super();
-        myStatusLabel.setFont(SystemInfo.isMac ? JBUI.Fonts.label(11) : JBUI.Fonts.label());
+        myStatusLabel.setFont(util.ClassLoaderUtil.INSTANCE.getJBFontForLabel());
         progressIcon.setVisible(false);
 
         myEditor = new GuiScriptEditor();
@@ -106,5 +104,7 @@ public class GuiScriptEditorPanel {
     public void setSyncToEditor(boolean toSync){
         myEditor.setSyncEditor(toSync);
     }
+
+
 
 }

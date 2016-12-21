@@ -5,7 +5,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.ex.AnActionListener
 import com.intellij.openapi.diagnostic.Logger
-import components.GuiRecorderComponent
+import util.ClassLoaderUtil
 import java.awt.AWTEvent
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
@@ -38,22 +38,25 @@ object GlobalActionRecorder {
         }
     }
 
-    private val globalAwtProcessor = object : IdeEventQueue.EventDispatcher {
+    private val globalAwtDispatcher = object : IdeEventQueue.EventDispatcher {
 
-        override fun dispatch(awtEvent: AWTEvent): Boolean {
-            when (awtEvent) {
-                is MouseEvent -> EventDispatcher.processMouseEvent(awtEvent)
-                is KeyEvent -> EventDispatcher.processKeyBoardEvent(awtEvent)
-            }
-            return false
+        override fun dispatch(awtEvent: AWTEvent): Boolean = myAwtProcessor(awtEvent)
+    }
+
+    private val myAwtProcessor: (AWTEvent) -> Boolean = {
+        when (it) {
+            is MouseEvent -> EventDispatcher.processMouseEvent(it)
+            is KeyEvent -> EventDispatcher.processKeyBoardEvent(it)
         }
+        false
     }
 
     fun activate() {
         if (active) return
         LOG.info("Global action recorder is active")
         ActionManager.getInstance().addAnActionListener(globalActionListener)
-        IdeEventQueue.getInstance().addDispatcher(globalAwtProcessor, GuiRecorderComponent) //todo: add disposal dependency on component
+//        IdeEventQueue.getInstance().addDispatcher(myAwtProcessor, { }) //todo: add disposal dependency on component
+        ClassLoaderUtil.addDispatcherToIdeEventQueue(globalAwtDispatcher)
         active = true
     }
 
@@ -61,7 +64,7 @@ object GlobalActionRecorder {
         if (active) {
             LOG.info("Global action recorder is non active")
             ActionManager.getInstance().removeAnActionListener(globalActionListener)
-            IdeEventQueue.getInstance().removeDispatcher(globalAwtProcessor)
+            IdeEventQueue.getInstance().removeDispatcher(globalAwtDispatcher)
 
         }
         active = false

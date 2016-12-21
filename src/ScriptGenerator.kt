@@ -4,7 +4,6 @@ import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.impl.ActionButton
-import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.impl.EditorComponentImpl
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Ref
@@ -22,6 +21,7 @@ import org.fest.swing.core.GenericTypeMatcher
 import org.fest.swing.exception.ComponentLookupException
 import ui.GuiScriptEditorFrame
 import ui.KeyUtil
+import util.ClassLoaderUtil
 import java.awt.Component
 import java.awt.Container
 import java.awt.Menu
@@ -321,8 +321,8 @@ private object Writer {
         if (GuiRecorderComponent.getFrame() != null && GuiRecorderComponent.getFrame()!!.getEditor() != null) {
             val editor = GuiRecorderComponent.getFrame()!!.getEditor()
             val document = editor.document
-//            ApplicationManager.getApplication().runWriteAction { document.insertString(document.textLength, str) }
-            WriteCommandAction.runWriteCommandAction(null, { document.insertString(document.textLength, str) })
+//            WriteCommandAction.runWriteCommandAction(null, { document.insertString(document.textLength, str) })
+            ClassLoaderUtil.runWriteCommandAction(Runnable { document.insertString(document.textLength, str) })
         }
     }
 }

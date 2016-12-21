@@ -4,8 +4,7 @@ import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.ex.EditorEx
-import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory
-import com.intellij.testFramework.LightVirtualFile
+import util.ClassLoaderUtil
 
 /**
  * @author Sergey Karashevich
@@ -34,7 +33,7 @@ class GuiScriptEditor {
 
         val pos = LogicalPosition(0, 0)
         editor.caretModel.moveToLogicalPosition(pos)
-        editor.highlighter = EditorHighlighterFactory.getInstance().createEditorHighlighter(LightVirtualFile("a.kt"), editor.colorsScheme, null)
+        editor.highlighter = ClassLoaderUtil.getEditorHighLighter(editor)
 
         myEditor = editor
 

@@ -1,24 +1,20 @@
 package components
 
-import com.intellij.openapi.Disposable
 import com.intellij.openapi.components.ApplicationComponent
 
 /**
  * @author Sergey Karashevich
  */
-object GuiRecorderComponent : ApplicationComponent, Disposable {
+object GuiRecorderComponent : ApplicationComponent {
 
-    override fun dispose() {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun disposeComponent() {
+
     }
 
     private var myFrame: ui.GuiScriptEditorFrame? = null
 
     override fun getComponentName() = "GuiRecorderComponent"
 
-    override fun disposeComponent() {
-
-    }
 
     override fun initComponent() {
 
