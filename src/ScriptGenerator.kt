@@ -37,7 +37,7 @@ import javax.swing.tree.TreePath
  */
 object ScriptGenerator {
 
-    val scriptBuffer = StringBuilder()
+    val scriptBuffer = StringBuilder("")
 
     var openComboBox = false;
 

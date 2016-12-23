@@ -10,7 +10,7 @@ import ui.Notifier
 /**
  * @author Sergey Karashevich
  */
-class StopRecAction: AnAction(null, "Update GUI Script Editor", AllIcons.Actions.Suspend){
+class StopRecAction: AnAction(null, "Stop Recording and Clear Buffer", AllIcons.Actions.Suspend){
 
     override fun actionPerformed(p0: AnActionEvent?) {
         GlobalActionRecorder.deactivate()

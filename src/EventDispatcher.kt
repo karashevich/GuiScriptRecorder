@@ -3,7 +3,7 @@ import com.intellij.ide.util.frameworkSupport.FrameworkVersion
 import com.intellij.ide.util.newProjectWizard.FrameworksTree
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.keymap.impl.KeymapManagerImpl
+import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.platform.ProjectTemplate
 import com.intellij.ui.components.JBList
@@ -109,14 +109,12 @@ object EventDispatcher {
             //we are redirecting native Mac Preferences action as an Intellij action "Show Settings" has been invoked
             LOG.info(keyEvent.toString())
             val showSettingsId = "ShowSettings"
-            if (KeymapManagerImpl.getInstance().activeKeymap.getActionIds(KeyStroke.getKeyStrokeForEvent(keyEvent)).contains(showSettingsId)) {
+            if (KeymapManager.getInstance().activeKeymap.getActionIds(KeyStroke.getKeyStrokeForEvent(keyEvent)).contains(showSettingsId)) {
                 val showSettingsAction = ActionManager.getInstance().getAction(showSettingsId)
                 val actionEvent = AnActionEvent.createFromInputEvent(keyEvent, ActionPlaces.UNKNOWN, showSettingsAction.templatePresentation, DataContext.EMPTY_CONTEXT)
                 ScriptGenerator.processKeyActionEvent(showSettingsAction, actionEvent)
             }
         }
-
-
     }
 
     fun  processActionEvent(anActionTobePerformed: AnAction, anActionEvent: AnActionEvent?) {

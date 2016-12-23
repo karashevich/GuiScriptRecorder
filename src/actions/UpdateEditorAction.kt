@@ -11,7 +11,7 @@ import ui.Notifier
 /**
  * @author Sergey Karashevich
  */
-class UpdateEditorAction : AnAction(null, "Update GUI Script Editor", AllIcons.Actions.NextOccurence) {
+class UpdateEditorAction : AnAction(null, "Update GUI Script Editor (get recorded from buffer)", AllIcons.Actions.NextOccurence) {
 
     override fun actionPerformed(actionEvent: AnActionEvent?) {
         val editor = GuiRecorderComponent.getFrame()!!.getEditor()

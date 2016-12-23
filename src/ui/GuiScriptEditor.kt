@@ -1,16 +1,19 @@
 package ui
 
+import ScriptGenerator
 import com.intellij.openapi.editor.EditorFactory
 import com.intellij.openapi.editor.LogicalPosition
 import com.intellij.openapi.editor.colors.EditorColorsManager
 import com.intellij.openapi.editor.ex.EditorEx
 import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory
+import com.intellij.openapi.editor.impl.EditorImpl
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.testFramework.LightVirtualFile
 
 /**
  * @author Sergey Karashevich
  */
-class GuiScriptEditor {
+class GuiScriptEditor() {
 
     var myEditor: EditorEx? = null
     var syncEditor = false
@@ -19,8 +22,8 @@ class GuiScriptEditor {
 
     init {
         val editorFactory = EditorFactory.getInstance()
-        val editorDocument = editorFactory.createDocument("")
-        val editor = (editorFactory.createEditor(editorDocument) as EditorEx)
+        val editorDocument = editorFactory.createDocument(ScriptGenerator.getScriptBuffer())
+        val editor = (editorFactory.createEditor(editorDocument, ProjectManager.getInstance().defaultProject) as EditorEx)
         editor.colorsScheme = EditorColorsManager.getInstance().globalScheme
         val settings = editor.settings
         settings.isLineNumbersShown = true
@@ -40,6 +43,12 @@ class GuiScriptEditor {
 
         //let editor be synchronised by default
         syncEditor = true
+        val editorImpl = (myEditor as EditorImpl)
+
+//        Disposer.register(editorImpl.disposable, Disposable {
+//            GuiRecorderComponent.getFrame()!!.getGuiScriptEditorPanel().createAndAddGuiScriptEditor()
+//            editorImpl
+//        })
     }
 
     //Editor should be realised before Application is closed

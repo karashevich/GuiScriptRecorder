@@ -9,7 +9,6 @@ import com.intellij.openapi.components.ApplicationComponent
 object GuiRecorderComponent : ApplicationComponent, Disposable {
 
     override fun dispose() {
-        throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     private var myFrame: ui.GuiScriptEditorFrame? = null

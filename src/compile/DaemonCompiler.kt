@@ -64,6 +64,7 @@ object DaemonCompiler {
         status("<long>Compilation started...")
 
         val codeLine = ReplCodeLine(0, code)
+//        val myEmptyList = emptyList() as kotlin.collections.Iterable<org.jetbrains.kotlin.cli.common.repl.ReplCodeLine>
         val compileResult = repl.compile(codeLine, emptyList())
         status("Compilation completed (${(Date().time - startTime)}ms)")
         val res1c = compileResult as? ReplCompileResult.CompiledClasses
@@ -71,7 +72,7 @@ object DaemonCompiler {
         TestCase.assertNotNull("Unexpected compile result: $compileResult", res1c)
 
         status("Evaluation started")
-        val evalResult = localEvaluator.eval(codeLine, emptyList(), res1c!!.classes, res1c.hasResult, res1c.newClasspath)
+        val evalResult = localEvaluator.eval(codeLine, emptyList(), res1c!!.classes, res1c.hasResult, res1c.classpathAddendum)
         val checkEvalResult = evalResult as? ReplEvalResult.UnitResult
     }
 

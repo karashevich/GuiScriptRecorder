@@ -33,12 +33,16 @@ public class GuiScriptEditorPanel {
         myStatusLabel.setFont(SystemInfo.isMac ? JBUI.Fonts.label(11) : JBUI.Fonts.label());
         progressIcon.setVisible(false);
 
-        myEditor = new GuiScriptEditor();
-
-        progressIcon.suspend();
-        editorPanel.add(myEditor.getPanel(), BorderLayout.CENTER);
+        createAndAddGuiScriptEditor();
 
         installActionToolbar();
+    }
+
+    public void createAndAddGuiScriptEditor() {
+        myEditor = new GuiScriptEditor();
+        progressIcon.suspend();
+        editorPanel.removeAll();
+        editorPanel.add(myEditor.getPanel(), BorderLayout.CENTER);
     }
 
     public Editor getEditor(){
