@@ -1,3 +1,4 @@
+import ScriptGenerator.makeIndent
 import ScriptGenerator.scriptBuffer
 import com.intellij.ide.util.newProjectWizard.FrameworksTree
 import com.intellij.openapi.actionSystem.ActionManager
@@ -20,7 +21,6 @@ import components.GuiRecorderComponent
 import org.fest.swing.core.BasicRobot
 import org.fest.swing.core.GenericTypeMatcher
 import org.fest.swing.exception.ComponentLookupException
-import ui.GuiScriptEditorFrame
 import ui.KeyUtil
 import java.awt.Component
 import java.awt.Container
@@ -70,7 +70,6 @@ object ScriptGenerator {
                 "$postfix"
     }
 
-    var currentContextComponent: Component? = null
     private var currentContext = Contexts()
 
 //    fun actionPerformed(e: com.intellij.openapi.actionSystem.AnActionEvent?) {
@@ -127,21 +126,24 @@ object ScriptGenerator {
     }
 
     fun clickCmp(cmp: Component, itemName: String?, clickCount: Int) {
+
         Typer.flushBuffer()
-        checkContext(cmp)
+        //check if context has been changed; don't check context for combobox popups
+        awareListsAndPopups(cmp) { currentContext.check(cmp) }
         when (cmp) {
             is JButton -> Writer.writeln(Templates.findAndClickButton(cmp.text))
             is ActionButton -> Writer.writeln(Templates.findAndClickActionButton(ActionManager.getInstance().getId(cmp.action)))
             is com.intellij.ui.components.labels.ActionLink -> Writer.writeln(Templates.clickActionLink(cmp.text))
             is JTextField -> {
+                val parentContainer = cmp.rootPane.parent
                 if (clickCount == 1) {
-                    val label = getLabel((currentContextComponent as Container?)!!, cmp)
+                    val label = getLabel(parentContainer, cmp)
                     if (label == null)
                         Writer.writeln(Templates.findJTextField())
                     else
                         Writer.writeln(Templates.findJTextFieldByLabel(label.text))
                 } else if (clickCount == 2) {
-                    val label = getLabel((currentContextComponent as Container?)!!, cmp)
+                    val label = getLabel(parentContainer, cmp)
                     if (label == null)
                         Writer.writeln(Templates.findJTextFieldAndDoubleClick())
                     else
@@ -158,7 +160,7 @@ object ScriptGenerator {
             is JList<*> -> {
                 if (cmp.javaClass.name.contains("BasicComboPopup")) {
                     if (openComboBox) {
-                        Writer.writeln(Templates.selectComboBox(itemName!!))
+                        Writer.write(Templates.selectComboBox(itemName!!) + "\n")
                         openComboBox = false
                     } else {
                         throw Exception("Unable to find combo box for this BasicComboPopup")
@@ -175,7 +177,7 @@ object ScriptGenerator {
             is JComboBox<*> -> {
                 openComboBox = true
                 val label = getBoundedLabelForComboBox(cmp)
-                Writer.write(Templates.onJComboBox(label.text))
+                Writer.write(makeIndent() + Templates.onJComboBox(label.text))
             }
             is JRadioButton -> {
                 Writer.writeln(Templates.clickRadioButton(cmp.text))
@@ -183,13 +185,13 @@ object ScriptGenerator {
             is EditorComponentImpl -> Writer.writeln(currentContext.editorActivate())
             is JTree -> {
                 Writer.writeln(Templates.selectTreePath(itemName!!))
-                Writer.writeln(Templates.selectTreePath(cmp.javaClass.name, itemName))
+//                Writer.writeln(Templates.selectTreePath(cmp.javaClass.name, itemName))
             }
             else -> if (cmp.inToolWindow()) {
-                    when (cmp.javaClass.toString()) {
-                         "class com.intellij.ide.projectView.impl.ProjectViewPane$1" -> Writer.writeln(currentContext.toolWindowActivate("Project"))
-                    }
+                when (cmp.javaClass.toString()) {
+                    "class com.intellij.ide.projectView.impl.ProjectViewPane$1" -> Writer.writeln(currentContext.toolWindowActivate("Project"))
                 }
+            }
         }
     }
 
@@ -203,7 +205,7 @@ object ScriptGenerator {
 
     private fun Component.inToolWindow(): Boolean {
         var pivotComponent = this
-        while(pivotComponent.parent != null) {
+        while (pivotComponent.parent != null) {
             if (pivotComponent is SimpleToolWindowPanel) return true
             else pivotComponent = pivotComponent.parent
         }
@@ -239,52 +241,17 @@ object ScriptGenerator {
 
     }
 
-    fun checkContext(cmp: Component) {
+    fun awareListsAndPopups (cmp: Component, body:() -> Unit) {
         cmp as JComponent
-        if (openComboBox) return //don't change context for comboBox list
+        if (cmp is JList<*> && openComboBox) return //don't change context for comboBox list
         if (isPopupList(cmp)) return //dont' change context for a popup menu
-        val parent = cmp.rootPane.parent
-        if (currentContextComponent != null && cmp.rootPane != currentContextComponent) {
-            if (parent is JFrame && parent.title == GuiScriptEditorFrame.GUI_SCRIPT_FRAME_TITLE) return //do nothing if switch to GUI Script Editor
-            if (currentContext.currentContextType != Contexts.Type.IDE_FRAME)
-                Writer.writeln(currentContext.closeContext())
-        }
-        if (currentContextComponent == null || cmp.rootPane != currentContextComponent) {
-            currentContextComponent = cmp.rootPane
-            when (parent) {
-                is JDialog -> {
-                    if (parent.title == com.intellij.ide.IdeBundle.message("title.new.project")) {
-                        Writer.writeln(currentContext.projectWizardContextStart())
-                        makeIndent()
-                        return
-                    } else {
-                        Writer.writeln(currentContext.dialogContextStart(parent.title))
-                        makeIndent()
-                        return
-                    }
-                }
-                is com.intellij.openapi.wm.impl.welcomeScreen.FlatWelcomeFrame -> {
-                    Writer.writeln(currentContext.welcomeFrameStart())
-                    makeIndent()
-                    return
-                }
-                is JFrame -> {
-                    Writer.writeln(currentContext.ideFrameStart())
-                    makeIndent()
-                    return
-                }
-            }
-        } else {
-            makeIndent()
-        }
+        body()
     }
 
-    private fun makeIndent() {
-        Writer.write("  ")
-    }
+    fun makeIndent() = currentContext.getIndent()
 
     fun clearContext() {
-        currentContextComponent = null
+        currentContext.clear()
     }
 
 
@@ -295,10 +262,10 @@ private fun Any.inToolWindow(): Boolean {
     else return false
 }
 
-private object Writer {
+object Writer {
 
     fun writeln(str: String) {
-        write(str + "\n")
+        write("${makeIndent()}" + str + "\n")
     }
 
     fun write(str: String) {
@@ -346,115 +313,8 @@ private object Typer {
 }
 
 //TEMPLATES
-private object Templates {
-    fun findDialog(name: String, title: String?) = "val ${name} = JDialogFixture.find(robot(), \"${title}\")"
-    fun withDialog(name: String) = "with (${name}){"
-    fun findProjectWizard(name: String) = "${name} = findNewProjectWizard()"
-    fun withProjectWizard(name: String) = "with (${name}){"
-    fun findWelcomeFrame(name: String) = "${name} = findWelcomeFrame()"
-    fun withWelcomeFrame(name: String) = "with (${name}){"
-    fun findIdeFrame(name: String) = "${name} = findIdeFrame()"
-    fun withIdeFrame(name: String) = "with (${name}){"
-
-    fun findAndClickButton(text: String) = "GuiTestUtil.findAndClickButton(this, \"${text}\")"
-    fun findAndClickActionButton(actionId: String) = "ActionButtonFixture.findByActionId(\"${actionId}\", robot(), this.target()).click()"
-
-    fun clickActionLink(text: String) = "ActionLinkFixture.findActionLinkByName(\"${text}\", robot(), this.target()).click()"
-    fun clickPopupItem(itemName: String) = "GuiTestUtil.clickPopupMenuItem(\"${itemName}\", true, this.target(), robot())"
-
-    fun clickListItem(name: String) = "JListFixture(robot(), robot().finder().findByType(this.target(), com.intellij.ui.components.JBList::class.java, true)).clickItem(\"$name\")"
-    fun findJTextField() = "val textField = myRobot.finder().findByType(JTextField::class.java)"
-    fun findJTextFieldByLabel(labelText: String) = "val textField = findTextField(\"${labelText}\").click()"
-    fun findJTextFieldAndDoubleClick() = "val textField = myRobot.finder().findByType(JTextField::class.java).doubleClick()"
-
-    fun findJTextFieldByLabelAndDoubleClick(labelText: String) = "val textField = findTextField(\"${labelText}\").doubleClick()"
-    fun typeText(text: String) = "GuiTestUtil.typeText(\"$text\", robot(), 10)"
-    fun clickFrameworksTree(itemName: String) = "selectFramework(\"$itemName\")"
-    fun selectSimpleTreeItem(path: String) = "SettingsTreeFixture.find(robot()).select(\"$path\")"
-    fun clickJBCheckBox(text: String) = "JBCheckBoxFixture.findByText(\"$text\", this.target(), robot(), true).click()"
-
-    fun clickJCheckBox(text: String) = "CheckBoxFixture.findByText(\"$text\", this.target(), robot(), true).click()"
-    fun onJComboBox(text: String) = "GuiTestUtil.findComboBox(robot(), this.target(), \"$text\")"
-    fun selectComboBox(itemName: String) = ".selectItem(\"$itemName\")"
-
-    fun clickRadioButton(text: String) = "GuiTestUtil.findRadioButton(robot(), this.target(), \"$text\").select()"
-    fun invokeActionComment(actionId: String) = "//invoke an action \"$actionId\" via keystroke string "
-
-    fun invokeAction(keyStrokeStr: String) = "GuiTestUtil.invokeActionViaShortcut(robot(), \"$keyStrokeStr\")"
-    fun invokeMainMenuAction(menuPath: Array<String>) = "${Contexts.IDE_FRAME_VAL}.invokeMenuPath(${menuPath.joinToString { "\"$it\"" } })"
-    fun selectTreePath(path: String) = "GuiTestUtil.findJTreeFixture(robot(), this.target()).clickPath(\"$path\")"
-    fun selectTreePath(treeClass: String, path: String) = "//GuiTestUtil.findJTreeFixtureByClassName(robot(), this.target(), \"$treeClass\").clickPath(\"$path\")"
-}
 
 
-class Contexts() {
-
-    enum class Type {DIALOG, WELCOME_FRAME, PROJECT_WIZARD, IDE_FRAME}
-    enum class SubType {EDITOR, TOOL_WINDOW}
-
-    private var projectWizardFound = false
-    private var welcomeFrameFound = false
-    private var ideFrameFound = false
-    private var myToolWindowId: String? = null
-
-    companion object {
-        val PROJECT_WIZARD_VAL = "projectWizard"
-        val WELCOME_FRAME_VAL = "welcomeFrame"
-        val IDE_FRAME_VAL = "ideFrame"
-    }
-
-    var dialogCount = 0
-    var currentContextType: Type? = null
-    var currentSubContextType: SubType? = null
-
-    fun dialogContextStart(title: String): String {
-        currentContextType = Type.DIALOG
-        val name = "dialog${dialogCount++}"
-        val findDialog = Templates.findDialog(name, title)
-        val withDialog = Templates.withDialog(name)
-        return findDialog + "\n" + withDialog
-    }
-
-    fun projectWizardContextStart(): String {
-        currentContextType = Type.PROJECT_WIZARD
-        val findProjectWizard = (if (projectWizardFound) "" else "var ") + Templates.findProjectWizard(PROJECT_WIZARD_VAL)
-        val withProjectWizard = Templates.withProjectWizard(PROJECT_WIZARD_VAL)
-        projectWizardFound = true
-
-        return findProjectWizard + "\n" + withProjectWizard
-    }
-
-    fun welcomeFrameStart(): String {
-        currentContextType = Type.WELCOME_FRAME
-        val findWelcomeFrame = (if (welcomeFrameFound) "" else "var ") + Templates.findWelcomeFrame(WELCOME_FRAME_VAL)
-        val withWelcomeFrame = Templates.withWelcomeFrame(WELCOME_FRAME_VAL)
-        welcomeFrameFound = true
-
-        return findWelcomeFrame + "\n" + withWelcomeFrame
-    }
-
-    fun ideFrameStart(): String {
-        currentContextType = Type.IDE_FRAME
-        val findIdeFrame = (if (ideFrameFound) "" else "val ") + Templates.findIdeFrame(IDE_FRAME_VAL)
-        val withIdeFrame = Templates.withIdeFrame(IDE_FRAME_VAL)
-        ideFrameFound = true
-
-        return findIdeFrame + "\n" + withIdeFrame
-    }
-
-    fun editorActivate(): String {
-        currentSubContextType = SubType.EDITOR
-        return "EditorFixture(robot(), $IDE_FRAME_VAL).requestFocus()"
-    }
-
-    fun toolWindowActivate(toolWindowId: String? = null): String {
-        currentSubContextType = SubType.TOOL_WINDOW
-        myToolWindowId = toolWindowId
-        return "ToolWindowFixture(\"$toolWindowId\", $IDE_FRAME_VAL.getProject(), robot()).activate()"
-    }
-
-    fun closeContext() = "}"
-}
 
 object IgnoredActions {
 

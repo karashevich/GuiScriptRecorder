@@ -1,6 +1,6 @@
 package com.intellij.testGuiFramework.script
 
-import com.intellij.testGuiFramework.framework.GuiTestBase
+import com.intellij.testGuiFramework.impl.GuiTestCase
 import com.intellij.util.ui.EdtInvocationManager
 import org.fest.swing.awt.AWT
 import org.fest.swing.core.FastRobot
@@ -14,7 +14,7 @@ import java.awt.Point
 /**
  * @author Sergey Karashevich
  */
-open class GuiTestCases() : GuiTestBase() {
+open class GuiTestCases() : GuiTestCase() {
 
     @Throws(Exception::class)
     override fun setUp() {
