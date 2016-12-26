@@ -1,12 +1,12 @@
 <idea-plugin>
   <id>GuiRecorderPlugin</id>
   <name>GUI Recorder</name>
-  <version>0.3</version>
+  <version>0.4</version>
   <vendor email="sergey.karashevich@jetbrains.com" url="http://jetbrains.com">JetBrains</vendor>
 
   <description>Plugin helps generate GUI Tests for IntelliJ based IDEs</description>
 
-  <change-notes> Fixed a classpath for GuiScriptRecorder.jar for a compile/DaemonCompiler.class </change-notes>
+  <change-notes>short kotlin API </change-notes>
 
   <depends>org.jetbrains.kotlin</depends>
 
