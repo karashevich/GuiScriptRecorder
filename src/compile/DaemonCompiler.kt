@@ -4,7 +4,6 @@ package compile
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
 import compile.KotlinCompileUtil.forced_urls
-import junit.framework.TestCase
 import org.jetbrains.kotlin.cli.common.repl.GenericReplCompiledEvaluator
 import org.jetbrains.kotlin.cli.common.repl.ReplCodeLine
 import org.jetbrains.kotlin.cli.common.repl.ReplCompileResult
@@ -68,7 +67,7 @@ object DaemonCompiler {
         status("Compilation completed (${(Date().time - startTime)}ms)")
         val res1c = compileResult as? ReplCompileResult.CompiledClasses
         if (res1c == null ) status("Compile error: see details in idea.log")
-        TestCase.assertNotNull("Unexpected compile result: $compileResult", res1c)
+        assert(res1c != null) //Unexpected compile result
 
         status("Evaluation started")
         val evalResult = localEvaluator.eval(codeLine, emptyList(), res1c!!.classes, res1c.hasResult, res1c.classpathAddendum)
@@ -81,7 +80,8 @@ object DaemonCompiler {
             val daemonOptions = DaemonOptions(verbose = true, reportPerf = true)
             val daemonJVMOptions = configureDaemonJVMOptions(inheritMemoryLimits = false, inheritAdditionalProperties = false)
             val daemon: CompileService? = KotlinCompilerClient.connectToCompileService(compilerId, flagFile, daemonJVMOptions, daemonOptions, DaemonReportingTargets(out = System.err), autostart = true)
-            TestCase.assertNotNull("failed to connect daemon", daemon)
+            assert(daemon != null) //failed to connect daemon
+            if (daemon == null) status("Failed connect to kotlin compile daemon")
             body(daemon!!)
         }
     }
