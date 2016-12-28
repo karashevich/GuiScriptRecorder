@@ -31,7 +31,7 @@ object Templates {
     fun clickRadioButton(text: String) = "radioButton(\"$text\").select()"
     fun invokeActionComment(actionId: String) = "//invoke an action \"$actionId\" via keystroke string "
 
-    fun invokeAction(keyStrokeStr: String) = "invokeAction(\"$keyStrokeStr\")"
+    fun shortcut(keyStrokeStr: String) = "shortcut(\"$keyStrokeStr\")"
     fun invokeMainMenuAction(menuPath: Array<String>) = "invokeMenuPath(${menuPath.joinToString { "\"$it\"" }})"
 
     fun selectTreePath(path: String) = "jTree(\"$path\").clickPath(\"$path\")"

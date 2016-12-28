@@ -95,7 +95,7 @@ object ScriptGenerator {
 //            if (IgnoredActions.ignore(keyStrokeStr)) return
 //            Writer.writeln(Templates.invokeActionComment(firstActionId))
 //            makeIndent()
-//            Writer.writeln(Templates.invokeAction(keyStrokeStr))
+//            Writer.writeln(Templates.shortcut(keyStrokeStr))
 //        }
     }
 
@@ -111,7 +111,7 @@ object ScriptGenerator {
 
         Writer.writeln(Templates.invokeActionComment(actionId))
         makeIndent()
-        Writer.writeln(Templates.invokeAction(keyStrokeStr))
+        Writer.writeln(Templates.shortcut(keyStrokeStr))
 
     }
 
