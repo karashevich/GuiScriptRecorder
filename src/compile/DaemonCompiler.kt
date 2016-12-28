@@ -4,7 +4,6 @@ package compile
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.util.Disposer
 import compile.KotlinCompileUtil.forced_urls
-import junit.framework.Assert.assertNotNull
 import junit.framework.TestCase
 import org.jetbrains.kotlin.cli.common.repl.GenericReplCompiledEvaluator
 import org.jetbrains.kotlin.cli.common.repl.ReplCodeLine
@@ -82,7 +81,7 @@ object DaemonCompiler {
             val daemonOptions = DaemonOptions(verbose = true, reportPerf = true)
             val daemonJVMOptions = configureDaemonJVMOptions(inheritMemoryLimits = false, inheritAdditionalProperties = false)
             val daemon: CompileService? = KotlinCompilerClient.connectToCompileService(compilerId, flagFile, daemonJVMOptions, daemonOptions, DaemonReportingTargets(out = System.err), autostart = true)
-            assertNotNull("failed to connect daemon", daemon)
+            TestCase.assertNotNull("failed to connect daemon", daemon)
             body(daemon!!)
         }
     }

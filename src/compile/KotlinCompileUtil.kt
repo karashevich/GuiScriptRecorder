@@ -113,7 +113,7 @@ object KotlinCompileUtil {
 
     fun getUrlFromUrlClassloader(partOfLibName: String): List<URL> {
         val probablyIdeaClassLoader = ServiceManager::class.java.classLoader //we presume that ServiceManager class is always loaded by IDEA UrlClassLoader
-        return probablyIdeaClassLoader.forced_urls().filter{ it.path.contains(partOfLibName) }
+        return probablyIdeaClassLoader.forced_urls().filter{ it.path.contains(partOfLibName, true) }
     }
 
     fun getAllUrls(): List<URL> = (ServiceManager::class.java.classLoader.forced_urls() + PerformScriptAction::class.java.classLoader.forced_urls())
