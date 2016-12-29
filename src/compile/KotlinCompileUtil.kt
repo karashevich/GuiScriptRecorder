@@ -9,6 +9,7 @@ import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.openapi.util.io.StreamUtil
+import com.intellij.openapi.util.io.endsWithName
 import com.intellij.openapi.vfs.CharsetToolkit
 import com.intellij.testGuiFramework.script.GuiTestCases
 import com.intellij.util.io.URLUtil
@@ -29,7 +30,7 @@ object KotlinCompileUtil {
 
         withDiffContextClassLoader {
             withIsolatedClassLoader { isolatedKotlinLibClassLoader ->
-                LOG.info(isolatedKotlinLibClassLoader.forced_urls().joinToString { it.toString() })
+                LOG.info(isolatedKotlinLibClassLoader.forcedUrls().joinToString { it.toString() })
                 val daemonCompilerCls = isolatedKotlinLibClassLoader.loadClass(DaemonCompiler::class.qualifiedName)
                 val loadClassInstance = daemonCompilerCls.getField("INSTANCE").get(null)
 
@@ -37,7 +38,7 @@ object KotlinCompileUtil {
                 setNotifierMethod.invoke(loadClassInstance, notifier)
 
                 val method = daemonCompilerCls.getMethod("compileAndEval", String::class.java, List::class.java, String::class.java, ClassLoader::class.java)
-                method.invoke(loadClassInstance, codeString, getAllUrls().map { it.toFile() }, GuiTestCases::class.qualifiedName, PerformScriptAction::class.java.classLoader)
+                method.invoke(loadClassInstance, codeString, getAllUrls().map(URL::toFile), GuiTestCases::class.qualifiedName, PerformScriptAction::class.java.classLoader)
             }
         }
     }
@@ -73,7 +74,7 @@ object KotlinCompileUtil {
                 "kotlin-script-runtime.jar")
 
         val kotlinPluginClassLoader = org.jetbrains.kotlin.daemon.client.KotlinRemoteReplCompiler::class.java.classLoader
-        val kotlinJarsUrlList = kotlinPluginClassLoader.forced_urls().filter { requirementKotlinJars.contains(URLUtil.urlToFile(it).name) }
+        val kotlinJarsUrlList = kotlinPluginClassLoader.forcedUrls().filter { requirementKotlinJars.contains(URLUtil.urlToFile(it).name) }
 
         //add GuiScriptRecorder.jar or classes
         val pluginJarUrl = (classLoader as PluginClassLoader).urls.filter { it.toString().endsWith("GuiScriptRecorder.jar") }.firstOrNull()
@@ -89,7 +90,7 @@ object KotlinCompileUtil {
     fun getKotlinCompilerUrl(kotlinPluginClassLoader: ClassLoader?): URL {
 
         //find kotlin-compiler.jar and add it to url list
-        val urlBase = kotlinPluginClassLoader!!.forced_urls().first()
+        val urlBase = kotlinPluginClassLoader!!.forcedUrls().first()
         val providedFile = URLUtil.urlToFile(urlBase).parentFile.parentFile //jump up to Kotlin dir
         var kotlinCompilerJarFile: File? = null
         FileUtil.processFilesRecursively(providedFile, { file -> if (file.name == "kotlin-compiler.jar") kotlinCompilerJarFile = file; true })
@@ -111,11 +112,15 @@ object KotlinCompileUtil {
     }
 
 
-    fun getAllUrls(): List<URL> = (ServiceManager::class.java.classLoader.forced_urls() + PerformScriptAction::class.java.classLoader.forced_urls())
+    fun getAllUrls(): List<URL> =
+        (ServiceManager::class.java.classLoader.forcedUrls() + ServiceManager::class.java.classLoader.forcedBaseUrls() + PerformScriptAction::class.java.classLoader.forcedUrls())
 
     fun URL.getParentURL() = this.toFile()!!.parentFile.toURI().toURL()
 
     @Suppress("UNCHECKED_CAST")
-    fun ClassLoader.forced_urls() = ((this.javaClass.getMethod("getUrls").invoke(this) as? List<*>)!!.filter{it is URL }) as List<URL>
+    fun ClassLoader.forcedUrls() = ((this.javaClass.getMethod("getUrls").invoke(this) as? List<*>)!!.filter{it is URL }) as List<URL>
+
+    @Suppress("UNCHECKED_CAST")
+    fun ClassLoader.forcedBaseUrls() = ((this.javaClass.getMethod("getBaseUrls").invoke(this) as? List<*>)!!.filter{it is URL && it.protocol == "file" && !it.file.endsWith("jar!")}) as List<URL>
 }
 
