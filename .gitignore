@@ -1,0 +1,10 @@
+*.commithash
+*.patch
+*.pyc
+*~
+.DS_Store
+.idea/dataSources.*
+.idea/dataSources
+.idea/shelf
+.idea/workspace.xml
+/out
