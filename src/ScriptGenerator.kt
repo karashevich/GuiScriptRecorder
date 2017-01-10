@@ -45,29 +45,37 @@ object ScriptGenerator {
 
     fun clearScriptBuffer() = scriptBuffer.setLength(0)
 
-    fun getWrappedScriptBuffer(): String {
-        if (scriptBuffer.length > 0)
-            scriptBuffer.appendln("}")  //close context
-        return wrapScriptWithFunDef(scriptBuffer.toString())
-    }
+    object ScriptWrapper {
 
-    fun wrapScriptWithFunDef(body: String): String {
-        val import = "import com.intellij.testGuiFramework.framework.* \n" +
-                "import com.intellij.testGuiFramework.fixtures.* \n " +
-                "import com.intellij.testGuiFramework.fixtures.newProjectWizard.NewProjectWizardFixture \n" +
-                "import org.fest.swing.core.Robot \n" +
-                "import java.awt.Component \n" +
-                "import com.intellij.openapi.application.ApplicationManager \n" +
-                "import org.fest.swing.fixture.*;"
+        val TEST_METHOD_NAME = "testMe"
 
-        val injection = "fun clickListItem(itemName: String, robot: Robot, component: Component) {(this as NewProjectWizardFixture).selectProjectType(itemName) }"
-        val testFun = "fun testGitImport(){"
-        val postfix = "} \n setUp() \n" +
-                "testGitImport()"
-        return "$import \n " +
-                "$testFun \n" +
-                "$body \n " +
-                "$postfix"
+        private fun classWrap(function: () -> (String)): String = "class CurrentTest: GuiTestCase() {\n${function.invoke()}\n}"
+        private fun funWrap(function: () -> String): String = "fun $TEST_METHOD_NAME(){\n${function.invoke()}\n}"
+
+        private fun importsWrap(vararg imports: String, function: () -> String): String {
+            val sb = StringBuilder()
+            imports.forEach { sb.append("$it\n") }
+            sb.append(function.invoke())
+            return sb.toString()
+        }
+
+        fun wrapScript(code: String): String =
+                importsWrap(
+                        "import com.intellij.testGuiFramework.* ",
+                        "import com.intellij.testGuiFramework.fixtures.*",
+                        "import com.intellij.testGuiFramework.framework.*",
+                        "import com.intellij.testGuiFramework.impl.*",
+                        "import org.fest.swing.core.Robot",
+                        "import java.awt.Component",
+                        "import com.intellij.openapi.application.ApplicationManager",
+                        "import org.fest.swing.fixture.*")
+                {
+                    classWrap {
+                        funWrap {
+                            code
+                        }
+                    }
+                }
     }
 
     private var currentContext = Contexts()
@@ -241,7 +249,7 @@ object ScriptGenerator {
 
     }
 
-    fun awareListsAndPopups (cmp: Component, body:() -> Unit) {
+    fun awareListsAndPopups(cmp: Component, body: () -> Unit) {
         cmp as JComponent
         if (cmp is JList<*> && openComboBox) return //don't change context for comboBox list
         if (isPopupList(cmp)) return //dont' change context for a popup menu
@@ -313,7 +321,6 @@ private object Typer {
 }
 
 //TEMPLATES
-
 
 
 object IgnoredActions {

@@ -3,7 +3,6 @@ package actions
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import compile.KotlinCompileUtil
 import components.GuiRecorderComponent
@@ -22,13 +21,14 @@ class PerformScriptAction: AnAction(null, "Run GUI Script", AllIcons.Actions.Exe
 
     override fun actionPerformed(p0: AnActionEvent?) {
         LOG.info("Compile and evaluate current script buffer")
-        Notifier.updateStatus("<long>Run current script")
+        Notifier.updateStatus("<long>Compiling and current script")
         val editor = GuiRecorderComponent.getEditor()
 
         //we wrapping it in lambda consumer because of different classloader problem in CompileDaemon class.
         val myNotifier: Consumer<String> = Consumer<String> { statusMessage -> Notifier.updateStatus(statusMessage) }
 
-        ApplicationManager.getApplication().executeOnPooledThread { KotlinCompileUtil.compileAndEvalCodeWithNotifier(editor.document.text, myNotifier) }
+//        ApplicationManager.getApplication().executeOnPooledThread { KotlinCompileUtil.compileAndEvalCodeWithNotifier(editor.document.text, myNotifier) }
+        KotlinCompileUtil.compileAndRun(editor.document.text)
     }
 
 }
