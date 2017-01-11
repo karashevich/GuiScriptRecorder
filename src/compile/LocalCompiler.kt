@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit
 import java.util.jar.JarFile
 import java.util.stream.Collectors
 
-
 /**
  * @author Sergey Karashevich
  */
@@ -94,7 +93,6 @@ class LocalCompiler {
         val helloKt = fileKt ?: scriptKt
         val kotlinCompilerJar = getKotlinCompilerJar()
         val libDirLocation = getApplicationLibDir().parentFile
-        val pluginClassesDir =
 
         Notifier.updateStatus("<long>Compiling...")
         val compilationProcessBuilder = if(classpath == null)
@@ -180,9 +178,10 @@ class LocalCompiler {
         Notifier.updateStatus("<long>Downloading kotlin-compiler.jar...")
         val downloader = DownloadableFileService.getInstance()
         val description = downloader.createFileDescription(kotlinCompilerJarUrl, kotlinCompilerJarName)
-        val jars = downloader.createDownloader(Arrays.asList(description), kotlinCompilerJarName)
-                .downloadFilesWithProgress(destDirPath, null, null)
-
+        ApplicationManager.getApplication().invokeAndWait({
+            downloader.createDownloader(Arrays.asList(description), kotlinCompilerJarName)
+                    .downloadFilesWithProgress(destDirPath, null, null)
+        })
         Notifier.updateStatus("kotlin-compiler.jar downloaded successfully")
         return File(destDirPath + File.separator + kotlinCompilerJarName)
     }

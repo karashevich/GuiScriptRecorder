@@ -1,9 +1,0 @@
-import com.intellij.testGuiFramework.fixtures.WelcomeFrameFixture
-
-fun testGitImport(){
-    val welcomeFrame = WelcomeFrameFixture.find(myRobot)
-    welcomeFrame.checkoutFrom()
-}
-
-setUp()
-testGitImport()

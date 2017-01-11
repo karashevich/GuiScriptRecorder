@@ -1,0 +1,67 @@
+buildscript {
+    ext.kotlinVersion='1.0.6'
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url "http://repository.jetbrains.com/repo/"}
+    }
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
+        //local file
+    }
+}
+
+
+plugins {
+    id "org.jetbrains.intellij" version "0.1.9"
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+    maven { url "http://repository.jetbrains.com/repo/"}
+    flatDir {
+        dirs 'lib'
+    }
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+    compile fileTree(dir: 'lib', include: '*.jar')
+}
+
+group 'org.sk'
+version "$version.$buildNumber"
+
+apply plugin: 'java'
+apply plugin: "kotlin"
+
+sourceCompatibility = 1.8
+
+intellij{
+//    alternativeIdePath="path/to/locally/installed/AppCode.app"
+    version '2016.3'
+    updateSinceUntilBuild = false
+//    publish {
+//        username repoUser
+//        password repoPassword
+//    }
+}
+
+sourceSets {
+    main {
+        java.srcDir 'src'
+        kotlin.srcDir 'src'
+        resources.srcDir 'res'
+    }
+
+    test {
+        java.srcDir 'testSrc'
+        kotlin.srcDir 'testSrc'
+    }
+}
+
+task printVersion << {
+    println version
+}
