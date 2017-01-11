@@ -5,7 +5,6 @@ import com.intellij.ide.plugins.PluginManager
 import com.intellij.ide.plugins.cl.PluginClassLoader
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
-import com.intellij.openapi.compiler.CompilationException
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.download.DownloadableFileService
@@ -52,8 +51,8 @@ class LocalCompiler {
             try {
                 compile(code, classpath)
                 run(classpath)
-            } catch(ce: CompilationException) {
-                throw ce
+            } catch (ce: CompilationException) {
+                LOG.error(ce.message)
             }
         })
     }
@@ -185,5 +184,7 @@ class LocalCompiler {
         Notifier.updateStatus("kotlin-compiler.jar downloaded successfully")
         return File(destDirPath + File.separator + kotlinCompilerJarName)
     }
+
+    class CompilationException(s: String) : Exception()
 }
 
