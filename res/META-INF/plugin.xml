@@ -1,10 +1,11 @@
 <idea-plugin>
     <id>GuiRecorderPlugin</id>
     <name>GUI Script Recorder</name>
-    <version>0.4.2</version>
     <vendor email="sergey.karashevich@jetbrains.com" url="http://jetbrains.com">JetBrains</vendor>
 
     <description>Plugin helps generate GUI Tests for IntelliJ based IDEs</description>
+
+    <depends>com.intellij.modules.platform</depends>
 
     <change-notes><![CDATA[
   <ul>
