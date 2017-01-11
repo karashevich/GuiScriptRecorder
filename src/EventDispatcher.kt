@@ -1,11 +1,10 @@
 import com.intellij.framework.PresentableVersion
-import com.intellij.ide.util.frameworkSupport.FrameworkVersion
-import com.intellij.ide.util.newProjectWizard.FrameworksTree
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.platform.ProjectTemplate
+import com.intellij.ui.CheckboxTree
 import com.intellij.ui.components.JBList
 import com.intellij.ui.popup.PopupFactoryImpl
 import com.intellij.ui.treeStructure.SimpleTree
@@ -62,7 +61,7 @@ object EventDispatcher {
             when(component) {
                 is JList<*> -> itemName = getCellText((component as JList<*>?)!!, convertedPoint)
                 is JBList<*> -> itemName = getCellText((component as JBList<*>?)!!, convertedPoint)
-                is FrameworksTree -> itemName = component.getClosestPathForLocation(convertedPoint.x, convertedPoint.y).lastPathComponent.toString()
+                is CheckboxTree -> itemName = component.getClosestPathForLocation(convertedPoint.x, convertedPoint.y).lastPathComponent.toString()
                 is SimpleTree -> itemName = component.getDeepestRendererComponentAt(convertedPoint.x, convertedPoint.y).toString()
                 is JTree -> itemName = Util.getJTreePath(component, component.getClosestPathForLocation(convertedPoint.x, convertedPoint.y))
             }
@@ -94,7 +93,11 @@ object EventDispatcher {
                 is PopupFactoryImpl.ActionItem -> return elementAt.text
                 is ProjectTemplate -> return elementAt.name
                 is PresentableVersion -> return elementAt.presentableName
-                is FrameworkVersion -> return elementAt.versionName
+                javaClass.canonicalName == "com.intellij.ide.util.frameworkSupport.FrameworkVersion" -> {
+                    val getNameMethod = elementAt.javaClass.getMethod("getVersionName")
+                    val name = getNameMethod.invoke(elementAt)
+                    return name as String
+                }
                 else -> return elementAt.toString()
             }
         }

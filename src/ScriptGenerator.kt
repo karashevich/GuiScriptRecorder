@@ -1,6 +1,5 @@
 import ScriptGenerator.makeIndent
 import ScriptGenerator.scriptBuffer
-import com.intellij.ide.util.newProjectWizard.FrameworksTree
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -12,6 +11,7 @@ import com.intellij.openapi.util.Ref
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.testGuiFramework.fixtures.SettingsTreeFixture
 import com.intellij.testGuiFramework.framework.GuiTestUtil
+import com.intellij.ui.CheckboxTree
 import com.intellij.ui.KeyStrokeAdapter
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBList
@@ -178,7 +178,7 @@ object ScriptGenerator {
                 }
 
             }
-            is FrameworksTree -> Writer.writeln(Templates.clickFrameworksTree(itemName!!))
+            is CheckboxTree -> Writer.writeln(Templates.clickFrameworksTree(itemName!!))
             is SimpleTree -> Writer.writeln(Templates.selectSimpleTreeItem(Util.convertSimpleTreeItemToPath(cmp as SimpleTree, itemName!!)))
             is JBCheckBox -> Writer.writeln(Templates.clickJBCheckBox(cmp.text))
             is JCheckBox -> Writer.writeln(Templates.clickJCheckBox(cmp.text))
