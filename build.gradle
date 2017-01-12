@@ -1,12 +1,12 @@
 buildscript {
-    ext.kotlinVersion='1.0.6'
+    ext.kotlin_version = '1.0.6'
     repositories {
         mavenLocal()
         mavenCentral()
         maven { url "http://repository.jetbrains.com/repo/"}
     }
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         //local file
     }
 }
@@ -39,7 +39,7 @@ apply plugin: "kotlin"
 sourceCompatibility = 1.8
 
 intellij{
-//    alternativeIdePath="path/to/locally/installed/AppCode.app"
+    alternativeIdePath="/Users/jetbrains/Library/Application Support/JetBrains/Toolbox/apps/RubyMine/ch-0/171.2303/RubyMine EAP.app"
     version '2016.3'
     updateSinceUntilBuild = false
 //    publish {
@@ -59,6 +59,7 @@ sourceSets {
         java.srcDir 'testSrc'
         kotlin.srcDir 'testSrc'
     }
+//    main.java.srcDirs += 'src/main/kotlin'
 }
 
 task printVersion << {
