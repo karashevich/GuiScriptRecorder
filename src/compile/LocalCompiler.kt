@@ -6,6 +6,7 @@ import com.intellij.ide.plugins.cl.PluginClassLoader
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.download.DownloadableFileService
 import com.intellij.util.lang.UrlClassLoader
@@ -84,7 +85,7 @@ class LocalCompiler {
 
     fun compile(code: String, classpath: List<String>): Boolean{
         val tempFile = createTempFile(code)
-        return compile(tempFile, classpath.joinToString(separator = ":"))
+        return compile(tempFile, classpath.joinToString(separator = if(SystemInfo.isWindows) ";" else ":"))
     }
 
     private fun compile(fileKt: File? = null, classpath: String? = null): Boolean {
