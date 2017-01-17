@@ -135,7 +135,13 @@ class LocalCompiler {
 
     private fun getPluginKotlincDir(): File {
 
-        if (ApplicationManager.getApplication().isUnitTestMode) return File(PathManager.getTempPath())
+        if (ApplicationManager.getApplication().isUnitTestMode) {
+            val tempPath = PathManager.getTempPath()
+            assert(tempPath != null)
+            val tempDirFile = File(tempPath)
+            FileUtil.ensureExists(tempDirFile)
+            return tempDirFile
+        }
 
         val pluginId = (this.javaClass.classLoader as PluginClassLoader).pluginId
         val pluginPath = PluginManager.getPlugin(pluginId)!!.path
