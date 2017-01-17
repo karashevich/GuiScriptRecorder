@@ -1,0 +1,11 @@
+welcomeFrame {
+    actionLink("Create New Project").click()
+    projectWizard {
+        jList("Java").clickItem("Java")
+        selectFramework("Kotlin (Java)")
+        button("Create...").click()
+        dialog("Create Kotlin Java Runtime Library") {
+            button("Cancel").click()
+        }
+        button("Cancel").click()
+    }

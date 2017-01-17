@@ -27,8 +27,8 @@ repositories {
 
 dependencies {
     compile 'junit:junit:4.12'
-    testCompile group: 'junit', name: 'junit', version: '4.11'
     compile fileTree(dir: 'lib', include: '*.jar')
+    testCompile group: 'junit', name: 'junit', version: '4.11'
 }
 
 group 'org.sk'
@@ -40,7 +40,7 @@ apply plugin: "kotlin"
 sourceCompatibility = 1.8
 
 intellij{
-    alternativeIdePath="/Users/jetbrains/Library/Application Support/JetBrains/Toolbox/apps/RubyMine/ch-0/171.2303/RubyMine EAP.app"
+//    alternativeIdePath="/Users/jetbrains/Library/Application Support/JetBrains/Toolbox/apps/RubyMine/ch-0/171.2303/RubyMine EAP.app"
     version '2016.3'
     updateSinceUntilBuild = false
 //    publish {
@@ -57,9 +57,11 @@ sourceSets {
     }
 
     test {
-        java.srcDir 'testSrc'
-        kotlin.srcDir 'testSrc'
+        java.srcDir 'src/testSrc'
+        kotlin.srcDir 'src/testSrc'
+        resources.srcDir 'src/testData'
     }
+
 //    main.java.srcDirs += 'src/main/kotlin'
 }
 
