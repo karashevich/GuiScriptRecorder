@@ -8,11 +8,15 @@
     <depends>com.intellij.modules.platform</depends>
 
     <change-notes><![CDATA[
+    <b>Fixed:</b>
   <ul>
       <li>Short kotlin API</li>
       <li>Fix jList() for ProjectTemplates</li>
       <li>Dropped of junit dependency</li>
       <li>Windows fix for classloader urls</li>
+      <li>Windows fix for classpath urls</li>
+      <li>Local kotlin compiler</li>
+      <li>Don't find hidded (isShowing == false) components </li>
   </ui>
     ]]></change-notes>
 
