@@ -10,8 +10,9 @@ object Templates {
     fun findAndClickButton(name: String) = "button(\"${name}\").click()"
     fun findAndClickActionButton(actionId: String) = "actionButton(\"${actionId}\").click()"
 
-    fun clickActionLink(text: String) = "actionLink(\"${text}\").click()"
-    fun clickPopupItem(itemName: String) = "popupClick(\"${itemName}\")"
+    fun clickActionLink(text: String) = "actionLink(\"$text\").click()"
+    fun clickPopupItem(itemName: String) = "popupClick(\"$itemName\")"
+    fun clickLinkLabel(text: String) = "linkLabel(\"$text\").click()"
 
     fun clickListItem(name: String) = "jList(\"$name\").clickItem(\"$name\")"
     fun findJTextField() = "textfield()"
@@ -21,7 +22,7 @@ object Templates {
     fun findJTextFieldByLabelAndDoubleClick(labelText: String) = "textfield(\"${labelText}\").doubleClick()"
     fun typeText(text: String) = "typeText(\"$text\")"
     fun clickFrameworksTree(itemName: String) = "selectFramework(\"$itemName\")"
-    fun selectSimpleTreeItem(path: String) = "jTree(\"$path\").select(\"$path\")"
+    fun selectSimpleTreeItem(path: String) = "jTree(\"$path\").selectPath(\"$path\")"
     fun clickJBCheckBox(text: String) = "checkbox(\"$text\").click()"
 
     fun clickJCheckBox(text: String) = "checkbox(\"$text\").click()"

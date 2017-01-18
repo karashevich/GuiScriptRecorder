@@ -15,6 +15,7 @@ import com.intellij.ui.CheckboxTree
 import com.intellij.ui.KeyStrokeAdapter
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBList
+import com.intellij.ui.components.labels.LinkLabel
 import com.intellij.ui.treeStructure.SimpleTree
 import com.intellij.util.ui.tree.TreeUtil
 import components.GuiRecorderComponent
@@ -190,6 +191,7 @@ object ScriptGenerator {
             is JRadioButton -> {
                 Writer.writeln(Templates.clickRadioButton(cmp.text))
             }
+            is LinkLabel<*> -> Writer.writeln(Templates.clickLinkLabel(cmp.text))
             is EditorComponentImpl -> Writer.writeln(currentContext.editorActivate())
             is JTree -> {
                 Writer.writeln(Templates.selectTreePath(itemName!!))
@@ -369,7 +371,8 @@ object Util {
         }
         searchableNode = searchableNodeRef.get()
         val path = TreeUtil.getPathFromRoot(searchableNode!!)
-        return path.toString().removePrefix("[").removeSuffix("]").split(",").filter(String::isNotEmpty).map(String::trim).joinToString("/")
+
+        return (0..path.pathCount-1).map { path.getPathComponent(it).toString() }.filter(String::isNotEmpty).joinToString("/")
     }
 
     fun getJTreePath(cmp: JTree, path: TreePath): String {
