@@ -42,7 +42,7 @@ class CompilationApiTest(): LightPlatformCodeInsightFixtureTestCase() {
         assert (result)
     }
 
-    private fun getTestKtx(name: String) = FileUtil.loadFile(File(getTestDataPath() + File.separator + name))
+    private fun getTestKtx(name: String) = FileUtil.loadFile(File(testDataPath + File.separator + name))
 
     fun getApi0_5() = getTestKtx("ScriptApi0_5.ktx")
     fun getWrongApi0_5() = getTestKtx("ScriptWrongApi0_5.ktx")

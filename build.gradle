@@ -15,6 +15,10 @@ plugins {
     id "org.jetbrains.intellij" version "0.1.9"
 }
 
+
+allprojects {
+
+}
 repositories {
     mavenLocal()
     mavenCentral()
@@ -25,11 +29,6 @@ repositories {
     }
 }
 
-dependencies {
-    compile 'junit:junit:4.12'
-    compile fileTree(dir: 'lib', include: '*.jar')
-    testCompile group: 'junit', name: 'junit', version: '4.11'
-}
 
 group 'org.sk'
 version "$version.$buildNumber"
@@ -63,8 +62,34 @@ sourceSets {
         resources.srcDir 'src/testData'
     }
 
-//    main.java.srcDirs += 'src/main/kotlin'
+    guiTest {
+        java.srcDir 'src/guiTestSrc'
+        kotlin.srcDir 'src/guiTestSrc'
+        resources.srcDir 'src/guiTestData'
+    }
 }
+
+dependencies {
+    compile 'junit:junit:4.12'
+    compile fileTree(dir: 'lib', include: '*.jar')
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+    guiTestCompile fileTree(dir: 'lib', include: '*.jar')
+    guiTestCompile sourceSets.main.output
+    guiTestCompile configurations.testCompile
+    guiTestCompile sourceSets.test.output
+    guiTestRuntime configurations.testRuntime
+}
+
+
+task testGuiTest(type: Test) {
+    testClassesDir = sourceSets.guiTest.output.classesDir
+    classpath = sourceSets.guiTest.runtimeClasspath
+    filter {
+        //specific test method
+        includeTestsMatching "GuiTestSuite"
+    }
+}
+
 
 task printVersion << {
     println version

@@ -8,6 +8,10 @@ import com.intellij.openapi.components.ApplicationComponent
  */
 object GuiRecorderComponent : ApplicationComponent, Disposable {
 
+    enum class States {IDLE, COMPILING, COMPILATION_ERROR, COMPILATION_DONE, RUNNING, RUNNING_ERROR, TEST_INIT}
+
+    var myState: States = States.IDLE;
+
     override fun dispose() {
     }
 
@@ -22,6 +26,10 @@ object GuiRecorderComponent : ApplicationComponent, Disposable {
     override fun initComponent() {
 
     }
+
+    fun getState() = myState
+
+    fun setState(yaState: States) { myState = yaState}
 
     fun getFrame() = myFrame
 

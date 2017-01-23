@@ -21,7 +21,7 @@ class PerformScriptAction: AnAction(null, "Run GUI Script", AllIcons.Actions.Exe
 
     override fun actionPerformed(p0: AnActionEvent?) {
         LOG.info("Compile and evaluate current script buffer")
-        Notifier.updateStatus("<long>Compiling and current script")
+        Notifier.updateStatus("<long>Compiling and performing current script")
         val editor = GuiRecorderComponent.getEditor()
 
         //we wrapping it in lambda consumer because of different classloader problem in CompileDaemon class.

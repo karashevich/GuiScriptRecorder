@@ -53,6 +53,15 @@ object KotlinCompileUtil {
         return myList.filterIsInstance(URL::class.java)
     }
 
-    fun ClassLoader.forcedBaseUrls() = ((this.javaClass.getMethod("getBaseUrls").invoke(this) as? List<*>)!!.filter { it is URL && it.protocol == "file" && !it.file.endsWith("jar!") }) as List<URL>
+    fun ClassLoader.forcedBaseUrls(): List<URL> {
+        try {
+            return ((this.javaClass.getMethod("getBaseUrls").invoke(this) as? List<*>)!!.filter { it is URL && it.protocol == "file" && !it.file.endsWith("jar!") }) as List<URL>
+
+        } catch (e: NoSuchMethodException) {
+            return emptyList()
+        }
+
+
+    }
 
 }

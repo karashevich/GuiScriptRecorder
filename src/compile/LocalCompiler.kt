@@ -10,6 +10,7 @@ import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.download.DownloadableFileService
 import com.intellij.util.lang.UrlClassLoader
+import components.GuiRecorderComponent
 import ui.Notifier
 import java.io.BufferedReader
 import java.io.File
@@ -18,7 +19,6 @@ import java.io.InputStreamReader
 import java.util.*
 import java.util.concurrent.Callable
 import java.util.concurrent.TimeUnit
-import java.util.jar.JarFile
 import java.util.stream.Collectors
 
 /**
@@ -59,11 +59,13 @@ class LocalCompiler {
     }
 
     private fun run(classpath: List<String>) {
+
+        //TODO: add case for Gradle test
         if (tempFile == null) throw Exception("Unable to find tempFile")
 //        findClass
         if (!tempDir.listFiles().any { file -> (file.name.contains(TEST_CLASS_NAME) && file.extension == "class")}) throw Exception("Unable to locate compiled class files")
-        val pluginClassLoader = this.javaClass.classLoader as PluginClassLoader
-        pluginClassLoader.addLibDirectories(listOf(tempDir.path))
+//        val pluginClassLoader = this.javaClass.classLoader as PluginClassLoader
+//        pluginClassLoader.addLibDirectories(listOf(tempDir.path))
 
         //create a copy of a plugin classloader
         val urlClassLoader = UrlClassLoader.build().parent(ApplicationManager::class.java.classLoader).urls(classpath.map { it -> File(it).toURI().toURL() }.plus(tempDir.toURI().toURL())).get()
@@ -72,9 +74,17 @@ class LocalCompiler {
         val setUpMethod = currentTest.getMethod("setUp")
         val testMethod = currentTest.getMethod(ScriptGenerator.ScriptWrapper.TEST_METHOD_NAME)
         Notifier.updateStatus("<long>Script running...")
-        setUpMethod.invoke(testCase)
-        testMethod.invoke(testCase)
-        Notifier.updateStatus("Script stopped")
+        GuiRecorderComponent.setState(GuiRecorderComponent.States.RUNNING)
+        try {
+            setUpMethod.invoke(testCase)
+            testMethod.invoke(testCase)
+            Notifier.updateStatus("Script stopped")
+            GuiRecorderComponent.setState(GuiRecorderComponent.States.IDLE)
+        } catch (throwable: Throwable) {
+            GuiRecorderComponent.setState(GuiRecorderComponent.States.RUNNING_ERROR)
+            Notifier.updateStatus("Running error, please see idea.log")
+            throw throwable
+        }
     }
 
     fun compileOnPooledThread(code: String, classpath: List<String>) {
@@ -95,6 +105,7 @@ class LocalCompiler {
         val libDirLocation = getApplicationLibDir().parentFile
 
         Notifier.updateStatus("<long>Compiling...")
+        GuiRecorderComponent.setState(GuiRecorderComponent.States.COMPILING)
         val compilationProcessBuilder = if(classpath == null)
             ProcessBuilder("java", "-jar",
                 kotlinCompilerJar.path,
@@ -113,9 +124,11 @@ class LocalCompiler {
         if (process.exitValue() == 1) {
             LOG.error(BufferedReader(InputStreamReader(process.errorStream)).lines().collect(Collectors.joining("\n")))
             Notifier.updateStatus("Compilation error (see idea.log)")
+            GuiRecorderComponent.setState(GuiRecorderComponent.States.COMPILATION_ERROR)
             throw CompilationException("Compilation error (see idea.log)")
         } else {
             Notifier.updateStatus("Compilation is done")
+            GuiRecorderComponent.setState(GuiRecorderComponent.States.COMPILATION_DONE)
         }
         return wait
     }
@@ -135,9 +148,8 @@ class LocalCompiler {
 
     private fun getPluginKotlincDir(): File {
 
-        if (ApplicationManager.getApplication().isUnitTestMode) {
-            val tempPath = PathManager.getTempPath()
-            assert(tempPath != null)
+        if (ApplicationManager.getApplication().isUnitTestMode || (this.javaClass.classLoader.javaClass.name == "sun.misc.Launcher\$AppClassLoader")) {
+            val tempPath = PathManager.getTempPath()!!
             val tempDirFile = File(tempPath)
             FileUtil.ensureExists(tempDirFile)
             return tempDirFile
@@ -155,31 +167,6 @@ class LocalCompiler {
 
     private fun isKotlinCompilerDir(dir: File): Boolean {
         return dir.listFiles().any { file -> file.name.contains("kotlin-compiler") }
-    }
-
-    private fun unJarKotlinCompiler(jarFile: File, destDir: File) {
-        ProcessBuilder("jar", "")
-    }
-
-
-    private fun unJarKotlinCompiler2(jarFile: File, destDir: File) {
-        val jar = JarFile(jarFile.path)
-        val enumEntries = jar.entries()
-        //TODO: ProgressManager here
-        while (enumEntries.hasMoreElements()) {
-            val f = File(destDir.path + File.separator + enumEntries.nextElement().name)
-            if (enumEntries.nextElement().isDirectory) { // if its a directory, create it
-                f.mkdir()
-                continue
-            }
-            val inStream = jar.getInputStream(enumEntries.nextElement()) // get the input stream
-            val fos = java.io.FileOutputStream(f)
-            while (inStream.available() > 0) {  // write contents of 'is' to 'fos'
-                fos.write(inStream.read())
-            }
-            fos.close()
-            inStream.close()
-        }
     }
 
     fun downloadKotlinCompilerJar(destDirPath: String?): File {
