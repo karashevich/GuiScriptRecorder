@@ -6,6 +6,7 @@ import com.intellij.ide.plugins.cl.PluginClassLoader
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.diagnostic.Logger
+import com.intellij.openapi.extensions.PluginId
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
 import com.intellij.util.download.DownloadableFileService
@@ -51,11 +52,36 @@ class LocalCompiler {
         ApplicationManager.getApplication().executeOnPooledThread({
             try {
                 compile(code, classpath)
-                run(classpath)
+                run2()
+//                run(classpath)
             } catch (ce: CompilationException) {
                 LOG.error(ce.message)
             }
         })
+    }
+
+
+    //alternative way to run compiled code with pluginClassloader built especially for this file
+    private fun run2() {
+        val testUrl = tempDir.toURI().toURL()
+        val myPluginClassLoader = PluginClassLoader(listOf(testUrl), arrayOf(ApplicationManager::class.java.classLoader), PluginId.getId("SubGuiScriptRecorder"), null, null)
+        val currentTest = myPluginClassLoader.loadClass(TEST_CLASS_NAME) ?: throw Exception("Unable to load by pluginClassLoader $TEST_CLASS_NAME.class file")
+        val testCase = currentTest.newInstance()
+        val setUpMethod = currentTest.getMethod("setUp")
+        val testMethod = currentTest.getMethod(ScriptGenerator.ScriptWrapper.TEST_METHOD_NAME)
+        Notifier.updateStatus("<long>Script running...")
+        GuiRecorderComponent.setState(GuiRecorderComponent.States.RUNNING)
+        try {
+            setUpMethod.invoke(testCase)
+            testMethod.invoke(testCase)
+            Notifier.updateStatus("Script stopped")
+            GuiRecorderComponent.setState(GuiRecorderComponent.States.IDLE)
+        } catch (throwable: Throwable) {
+            GuiRecorderComponent.setState(GuiRecorderComponent.States.RUNNING_ERROR)
+            Notifier.updateStatus("Running error, please see idea.log")
+            throw throwable
+        }
+
     }
 
     private fun run(classpath: List<String>) {
