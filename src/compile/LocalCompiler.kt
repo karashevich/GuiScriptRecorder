@@ -8,7 +8,6 @@ import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
-import com.intellij.testGuiFramework.impl.GuiTestCase
 import com.intellij.util.download.DownloadableFileService
 import com.intellij.util.lang.UrlClassLoader
 import components.GuiRecorderComponent
@@ -71,8 +70,6 @@ class LocalCompiler {
         //create a copy of a plugin classloader
         val urlClassLoader = UrlClassLoader.build().parent(ApplicationManager::class.java.classLoader).urls(classpath.map { it -> File(it).toURI().toURL() }.plus(tempDir.toURI().toURL())).get()
         val currentTest = urlClassLoader.loadClass(TEST_CLASS_NAME) ?: throw Exception("Unable to load by pluginClassLoader $TEST_CLASS_NAME.class file")
-        //Setup GuiSettings to avoid conflicts with different classloaders
-        GuiTestCase.GuiSettings.setUp()
         val testCase = currentTest.newInstance()
         val setUpMethod = currentTest.getMethod("setUp")
         val testMethod = currentTest.getMethod(ScriptGenerator.ScriptWrapper.TEST_METHOD_NAME)

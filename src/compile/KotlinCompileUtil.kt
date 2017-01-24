@@ -5,6 +5,7 @@ package compile
  */
 import ScriptGenerator
 import actions.PerformScriptAction
+import com.intellij.ide.plugins.PluginManager
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.ServiceManager
 import com.intellij.openapi.diagnostic.Logger
@@ -34,6 +35,9 @@ object KotlinCompileUtil {
             val libUrl = urls.filter { url -> (url.file.endsWith("idea.jar") && File(url.path).parentFile.name == "lib" ) }.firstOrNull()!!.getParentURL()
             urls.filter { url -> !url.file.startsWith(libUrl.file) }.plus(libUrl).toSet()
 
+            //add git4idea urls to allow git configuration from local runner
+            if (System.getenv("TEAMCITY_VERSION") != null) urls.plus(getGit4IdeaUrls())
+
             if (!ApplicationManager.getApplication().isUnitTestMode)
                 urls.plus(ServiceManager::class.java.classLoader.forcedBaseUrls())
             return urls.toList()
@@ -44,6 +48,14 @@ object KotlinCompileUtil {
         if (!ApplicationManager.getApplication().isUnitTestMode)
             list += ServiceManager::class.java.classLoader.forcedBaseUrls()
         return list
+    }
+
+    fun getGit4IdeaUrls(): List<URL> {
+        val git4IdeaPluginClassLoader = PluginManager.getPlugins().filter { pluginDescriptor -> pluginDescriptor.name.toLowerCase() == "git integration" }.firstOrNull()!!.pluginClassLoader
+        val urls = git4IdeaPluginClassLoader.forcedUrls()
+        val libUrl =  urls.filter { url -> (url.file.endsWith("git4idea.jar") && File(url.path).parentFile.name == "lib" ) }.firstOrNull()!!.getParentURL()
+        urls.filter { url -> !url.file.startsWith(libUrl.file) }.plus(libUrl).toSet()
+        return urls
     }
 
 
