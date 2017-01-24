@@ -41,10 +41,10 @@ sourceCompatibility = 1.8
 intellij{
 //    alternativeIdePath="/Users/jetbrains/Library/Application Support/JetBrains/Toolbox/apps/RubyMine/ch-0/171.2303/RubyMine EAP.app"
 //    alternativeIdePath="/Users/jetbrains/Library/Application Support/JetBrains/Toolbox/apps/IDEA-U/ch-0/171.1901/IntelliJ IDEA 2017.1 EAP.app"
-//    version '2016.3'
+//    version '2016.3's
 //    version 'IC-2016.1'
     updateSinceUntilBuild = false
-    plugins = ['git4idea']
+    plugins = ['Git4Idea']
 //    publish {
 //        username repoUser
 //        password repoPassword
