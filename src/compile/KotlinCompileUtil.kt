@@ -28,6 +28,17 @@ object KotlinCompileUtil {
     }
 
     fun getAllUrls(): List<URL> {
+        if (ServiceManager::class.java.classLoader.javaClass.name.contains("Launcher\$AppClassLoader")) {
+            //lets substitute jars with a common lib dir to avoid Windows long path error
+            val urls = ServiceManager::class.java.classLoader.forcedUrls()
+            val libUrl = urls.filter { url -> (url.file.endsWith("idea.jar") && File(url.path).parentFile.name == "lib" ) }.firstOrNull()!!.getParentURL()
+            urls.filter { url -> !url.file.startsWith(libUrl.file) }.plus(libUrl).toSet()
+
+            if (!ApplicationManager.getApplication().isUnitTestMode)
+                urls.plus(ServiceManager::class.java.classLoader.forcedBaseUrls())
+            return urls.toList()
+        }
+
         var list: List<URL> = (ServiceManager::class.java.classLoader.forcedUrls()
                 + PerformScriptAction::class.java.classLoader.forcedUrls())
         if (!ApplicationManager.getApplication().isUnitTestMode)
