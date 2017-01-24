@@ -1,6 +1,8 @@
 import actions.PerformScriptAction
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.util.SystemInfo
 import com.intellij.openapi.util.io.FileUtil
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.ui.EdtInvocationManager
 import components.GuiRecorderComponent
 import components.GuiRecorderComponent.States
@@ -39,6 +41,10 @@ object RecorderTestUtil {
                     || GuiRecorderComponent.getState() == States.RUNNING_ERROR) }, Timeout.timeout(timeout, timeUnit))
     }
 
-    fun getCodeSnippet(name: String) = FileUtil.loadFile(File(getTestDataPath() + File.separator + name))
+    fun getCodeSnippet(name: String): String {
+        val str = FileUtil.loadFile(File(getTestDataPath() + File.separator + name))
+        if (SystemInfo.isWindows) return StringUtil.convertLineSeparators(str)
+        else return str
+    }
 
 }
