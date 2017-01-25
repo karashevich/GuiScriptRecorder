@@ -36,7 +36,7 @@ object KotlinCompileUtil {
             urls.filter { url -> !url.file.startsWith(libUrl.file) }.plus(libUrl).toSet()
 
             //add git4idea urls to allow git configuration from local runner
-            if (System.getenv("TEAMCITY_VERSION") != null) urls.plus(getGit4IdeaUrls())
+//            if (System.getenv("TEAMCITY_VERSION") != null) urls.plus(getGit4IdeaUrls())
 
             if (!ApplicationManager.getApplication().isUnitTestMode)
                 urls.plus(ServiceManager::class.java.classLoader.forcedBaseUrls())
