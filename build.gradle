@@ -44,8 +44,7 @@ intellij{
 //    version '2016.3's
 //    version 'IC-2016.1'
     updateSinceUntilBuild = false
-//    plugins = ['Git4Idea']
-//    pluginName 'Git Integration'
+//    plugins 'git4idea'
 //    publish {
 //        username repoUser
 //        password repoPassword
