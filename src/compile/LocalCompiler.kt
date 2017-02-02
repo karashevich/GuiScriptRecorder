@@ -228,7 +228,7 @@ class LocalCompiler {
     }
 
     private fun getProcessBuilderForWin(kotlinCompilerJar: File, libDirLocation: File, classpath: List<String>, scriptKt: File): ProcessBuilder {
-        val moduleXmlFile = createTempFile(content = ModuleXmlBuilder.build(outputDir = tempDir.path, classPath = classpath), fileName = "module", extension = ".xml")
+        val moduleXmlFile = createTempFile(content = ModuleXmlBuilder.build(outputDir = tempDir.path, classPath = classpath, sourcePath = scriptKt.path), fileName = "module", extension = ".xml")
         return ProcessBuilder("java", "-jar",
                 kotlinCompilerJar.path,
                 "-kotlin-home", libDirLocation.path,

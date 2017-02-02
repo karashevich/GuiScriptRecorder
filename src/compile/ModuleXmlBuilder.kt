@@ -3,7 +3,7 @@ package compile
 /**
  * @author Sergey Karashevich
  */
-object ModuleXmlBuilder{
+object ModuleXmlBuilder {
 
     fun module(function: () -> String): String = "<modules>\n${function.invoke()}\n</modules>"
 
@@ -14,10 +14,13 @@ object ModuleXmlBuilder{
     fun addClasspath(path: String) = "<classpath path=\"$path\"/>"
 
 
-    fun build(outputDir: String, classPath: List<String>) =
+    fun build(outputDir: String, classPath: List<String>, sourcePath: String) =
             module {
-            modules(outputDir =  outputDir) {
-              classPath.map {path -> addClasspath(path)}.joinToString("\n")
+                modules(outputDir = outputDir) {
+                    classPath
+                            .map { path -> addClasspath(path) }
+                            .plus(addSource(sourcePath))
+                            .joinToString("\n")
+                }
             }
-        }
 }
