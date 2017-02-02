@@ -38,12 +38,12 @@ class LocalCompiler {
     val KOTLINC_PLUGIN_DIR = "kotlinc"
 
     val tempDir by lazy { FileUtil.createTempDirectory("kotlin-compiler-tmp", null, true) }
-    val scriptKt by lazy { createTempFile(helloKtText) }
+    val helloKt by lazy { createTempFile(helloKtText) }
     var tempFile: File? = null
 
-    private fun createTempFile(code: String): File {
-        val tempFile = FileUtil.createTempFile(TEST_CLASS_NAME, ".kt", true)
-        FileUtil.writeToFile(tempFile, code, false)
+    private fun createTempFile(content: String, fileName: String = TEST_CLASS_NAME, extension: String = ".kt"): File {
+        val tempFile = FileUtil.createTempFile(fileName, extension, true)
+        FileUtil.writeToFile(tempFile, content, false)
         this.tempFile = tempFile
         return tempFile
     }
@@ -97,7 +97,7 @@ class LocalCompiler {
         //TODO: add case for Gradle test
         if (tempFile == null) throw Exception("Unable to find tempFile")
 //        findClass
-        if (!tempDir.listFiles().any { file -> (file.name.contains(TEST_CLASS_NAME) && file.extension == "class")}) throw Exception("Unable to locate compiled class files")
+        if (!tempDir.listFiles().any { file -> (file.name.contains(TEST_CLASS_NAME) && file.extension == "class") }) throw Exception("Unable to locate compiled class files")
 //        val pluginClassLoader = this.javaClass.classLoader as PluginClassLoader
 //        pluginClassLoader.addLibDirectories(listOf(tempDir.path))
 
@@ -127,31 +127,30 @@ class LocalCompiler {
         })
     }
 
-    fun compile(code: String, classpath: List<String>): Boolean{
+    fun compile(code: String, classpath: List<String>): Boolean {
         val tempFile = createTempFile(code)
-        return compile(tempFile, classpath.joinToString(separator = if(SystemInfo.isWindows) ";" else ":"))
+        return compile(tempFile, classpath)
     }
 
-    private fun compile(fileKt: File? = null, classpath: String? = null): Boolean {
+    private fun compile(fileKt: File? = null, classpath: List<String>): Boolean {
 
-        val helloKt = fileKt ?: scriptKt
+        val scriptKt = fileKt ?: helloKt
         val kotlinCompilerJar = getKotlinCompilerJar()
         val libDirLocation = getApplicationLibDir().parentFile
 
         Notifier.updateStatus("<long>Compiling...")
         GuiRecorderComponent.setState(GuiRecorderComponent.States.COMPILING)
-        val compilationProcessBuilder = if(classpath == null)
-            ProcessBuilder("java", "-jar",
-                kotlinCompilerJar.path,
-                "-kotlin-home", libDirLocation.path,
-                "-d", tempDir.path,
-                helloKt.path) else
+
+
+        val compilationProcessBuilder = if (SystemInfo.isWindows)
+            getProcessBuilderForWin(kotlinCompilerJar, libDirLocation, classpath, scriptKt)
+        else
             ProcessBuilder("java", "-jar",
                     kotlinCompilerJar.path,
                     "-kotlin-home", libDirLocation.path,
                     "-d", tempDir.path,
-                    "-cp", classpath,
-                    helloKt.path)
+                    "-cp", buildClasspath(classpath),
+                    scriptKt.path)
         val process = compilationProcessBuilder.start()
         val wait = process.waitFor(120, TimeUnit.MINUTES)
         assert(wait)
@@ -183,7 +182,7 @@ class LocalCompiler {
     private fun getPluginKotlincDir(): File {
 
         if (ApplicationManager.getApplication().isUnitTestMode || (this.javaClass.classLoader.javaClass.name == "sun.misc.Launcher\$AppClassLoader")) {
-            val tempPath = PathManager.getTempPath()!!
+            val tempPath = PathManager.getTempPath()
             val tempDirFile = File(tempPath)
             FileUtil.ensureExists(tempDirFile)
             return tempDirFile
@@ -217,5 +216,24 @@ class LocalCompiler {
     }
 
     class CompilationException(s: String) : Exception()
+
+
+    fun buildClasspath(cp: List<String>): String {
+        if (SystemInfo.isWindows) {
+            val IDEA_JAR = "idea.jar"
+            val ideaJarPath = cp.find { pathStr -> pathStr.endsWith("${File.separator}$IDEA_JAR") }
+            val ideaLibPath = ideaJarPath!!.substring(startIndex = 0, endIndex = ideaJarPath.length - IDEA_JAR.length - File.separator.length)
+            return cp.filterNot { pathStr -> pathStr.startsWith(ideaLibPath) }.plus(ideaLibPath).joinToString(";")
+        } else return cp.joinToString(":")
+    }
+
+    private fun getProcessBuilderForWin(kotlinCompilerJar: File, libDirLocation: File, classpath: List<String>, scriptKt: File): ProcessBuilder {
+        val moduleXmlFile = createTempFile(content = ModuleXmlBuilder.build(outputDir = tempDir.path, classPath = classpath), fileName = "module", extension = ".xml")
+        return ProcessBuilder("java", "-jar",
+                kotlinCompilerJar.path,
+                "-kotlin-home", libDirLocation.path,
+                "-module", moduleXmlFile.path,
+                scriptKt.path)
+    }
 }
 
