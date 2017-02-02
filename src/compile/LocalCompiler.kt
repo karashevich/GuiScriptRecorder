@@ -64,7 +64,15 @@ class LocalCompiler {
     //alternative way to run compiled code with pluginClassloader built especially for this file
     private fun run2() {
         val testUrl = tempDir.toURI().toURL()
-        val myPluginClassLoader = PluginClassLoader(listOf(testUrl), arrayOf(ApplicationManager::class.java.classLoader), PluginId.getId("SubGuiScriptRecorder"), null, null)
+        var classLoadersArray: Array<ClassLoader>
+        try {
+            //run testGuiTest gradle configuration
+            ApplicationManager::class.java.classLoader.loadClass("com.intellij.testGuiFramework.impl.GuiTestCase")
+            classLoadersArray = arrayOf(ApplicationManager::class.java.classLoader)
+        } catch (cfe: ClassNotFoundException) {
+            classLoadersArray = arrayOf(ApplicationManager::class.java.classLoader, this.javaClass.classLoader)
+        }
+        val myPluginClassLoader = PluginClassLoader(listOf(testUrl), classLoadersArray, PluginId.getId("SubGuiScriptRecorder"), null, null)
         val currentTest = myPluginClassLoader.loadClass(TEST_CLASS_NAME) ?: throw Exception("Unable to load by pluginClassLoader $TEST_CLASS_NAME.class file")
         val testCase = currentTest.newInstance()
         val setUpMethod = currentTest.getMethod("setUp")
