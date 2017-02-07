@@ -53,7 +53,6 @@ class LocalCompiler {
             try {
                 compile(code, classpath)
                 run2()
-//                run(classpath)
             } catch (ce: CompilationException) {
                 LOG.error(ce.message)
             }

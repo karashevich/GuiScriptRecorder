@@ -4,10 +4,10 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.keymap.KeymapManager
 import com.intellij.openapi.util.SystemInfo
 import com.intellij.platform.ProjectTemplate
-import com.intellij.ui.CheckboxTree
+import com.intellij.testGuiFramework.generators.ComponentCodeGenerator
+import com.intellij.testGuiFramework.generators.Generators
 import com.intellij.ui.components.JBList
 import com.intellij.ui.popup.PopupFactoryImpl
-import com.intellij.ui.treeStructure.SimpleTree
 import com.intellij.util.containers.HashMap
 import ui.GuiScriptEditorFrame
 import java.awt.Component
@@ -26,6 +26,8 @@ import javax.swing.*
 object EventDispatcher {
 
     val LOG = Logger.getInstance(EventDispatcher::class.java)
+
+    private val generators : List<ComponentCodeGenerator<*>> = Generators.getGenerators()
 
     fun processMouseEvent(me: MouseEvent) {
 
@@ -58,15 +60,22 @@ object EventDispatcher {
             val convertedPoint = Point(
                     me.locationOnScreen.x - component.locationOnScreen.x,
                     me.locationOnScreen.y - component.locationOnScreen.y)
-            when(component) {
-                is JList<*> -> itemName = getCellText((component as JList<*>?)!!, convertedPoint)
-                is JBList<*> -> itemName = getCellText((component as JBList<*>?)!!, convertedPoint)
-                is CheckboxTree -> itemName = component.getClosestPathForLocation(convertedPoint.x, convertedPoint.y).lastPathComponent.toString()
-                is SimpleTree -> itemName = component.getDeepestRendererComponentAt(convertedPoint.x, convertedPoint.y).toString()
-                is JTree -> itemName = Util.getJTreePath(component, component.getClosestPathForLocation(convertedPoint.x, convertedPoint.y))
-            }
+//            when(component) {
+//                is JList<*> -> itemName = getCellText((component as JList<*>?)!!, convertedPoint)
+//                is JBList<*> -> itemName = getCellText((component as JBList<*>?)!!, convertedPoint)
+//                is CheckboxTree -> itemName = component.getClosestPathForLocation(convertedPoint.x, convertedPoint.y).lastPathComponent.toString()
+//                is SimpleTree -> itemName = component.getDeepestRendererComponentAt(convertedPoint.x, convertedPoint.y).toString()
+//                is JTree -> itemName = Util.getJTreePath(component, component.getClosestPathForLocation(convertedPoint.x, convertedPoint.y))
+//            }
+
+            //get all extended code generators and get with the highest priority
             LOG.info("Delegate click from component:${component}")
-            ScriptGenerator.clickCmp(component, itemName, clickCount)
+
+            val suitableGenerator = generators.filter { generator -> generator.accept(component!!) }.sortedByDescending(ComponentCodeGenerator<*>::priority).firstOrNull() ?: return
+            val code = suitableGenerator.generateCode(component, me, convertedPoint)
+            ScriptGenerator.addToScript(code)
+
+//            ScriptGenerator.clickCmp(component, itemName, clickCount)
         }
     }
 

@@ -1,21 +1,14 @@
 import ScriptGenerator.makeIndent
 import ScriptGenerator.scriptBuffer
-import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
-import com.intellij.openapi.actionSystem.impl.ActionButton
 import com.intellij.openapi.command.WriteCommandAction
-import com.intellij.openapi.editor.impl.EditorComponentImpl
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.util.Ref
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.testGuiFramework.fixtures.SettingsTreeFixture
 import com.intellij.testGuiFramework.framework.GuiTestUtil
-import com.intellij.ui.CheckboxTree
 import com.intellij.ui.KeyStrokeAdapter
-import com.intellij.ui.components.JBCheckBox
-import com.intellij.ui.components.JBList
-import com.intellij.ui.components.labels.LinkLabel
 import com.intellij.ui.treeStructure.SimpleTree
 import com.intellij.util.ui.tree.TreeUtil
 import components.GuiRecorderComponent
@@ -139,70 +132,71 @@ object ScriptGenerator {
         Typer.flushBuffer()
         //check if context has been changed; don't check context for combobox popups
         awareListsAndPopups(cmp) { currentContext.check(cmp) }
-        when (cmp) {
-            is JButton -> Writer.writeln(Templates.findAndClickButton(cmp.text))
-            is ActionButton -> Writer.writeln(Templates.findAndClickActionButton(ActionManager.getInstance().getId(cmp.action)))
-            is com.intellij.ui.components.labels.ActionLink -> Writer.writeln(Templates.clickActionLink(cmp.text))
-            is JTextField -> {
-                val parentContainer = cmp.rootPane.parent
-                if (clickCount == 1) {
-                    val label = getLabel(parentContainer, cmp)
-                    if (label == null)
-                        Writer.writeln(Templates.findJTextField())
-                    else
-                        Writer.writeln(Templates.findJTextFieldByLabel(label.text))
-                } else if (clickCount == 2) {
-                    val label = getLabel(parentContainer, cmp)
-                    if (label == null)
-                        Writer.writeln(Templates.findJTextFieldAndDoubleClick())
-                    else
-                        Writer.writeln(Templates.findJTextFieldByLabelAndDoubleClick(label.text))
-                }
-            }
-            is JBList<*> -> {
-                if (isPopupList(cmp))
-                    Writer.writeln(Templates.clickPopupItem(itemName!!))
-                else if (isFrameworksTree(cmp))
-                else
-                    Writer.writeln(Templates.clickListItem(itemName!!))
-            }
-            is JList<*> -> {
-                if (cmp.javaClass.name.contains("BasicComboPopup")) {
-                    if (openComboBox) {
-                        Writer.write(Templates.selectComboBox(itemName!!) + "\n")
-                        openComboBox = false
-                    } else {
-                        throw Exception("Unable to find combo box for this BasicComboPopup")
-                    }
-                } else {
-                    throw UnsupportedOperationException("not implemented")
-                }
+//        when (cmp) {
+//            is JButton -> Writer.writeln(Templates.findAndClickButton(cmp.text))
+//            is ActionButton -> Writer.writeln(Templates.findAndClickActionButton(ActionManager.getInstance().getId(cmp.action)))
+//            is com.intellij.ui.components.labels.ActionLink -> Writer.writeln(Templates.clickActionLink(cmp.text))
+//            is JTextField -> {
+//                val parentContainer = cmp.rootPane.parent
+//                if (clickCount == 1) {
+//                    val label = getLabel(parentContainer, cmp)
+//                    if (label == null)
+//                        Writer.writeln(Templates.findJTextField())
+//                    else
+//                        Writer.writeln(Templates.findJTextFieldByLabel(label.text))
+//                } else if (clickCount == 2) {
+//                    val label = getLabel(parentContainer, cmp)
+//                    if (label == null)
+//                        Writer.writeln(Templates.findJTextFieldAndDoubleClick())
+//                    else
+//                        Writer.writeln(Templates.findJTextFieldByLabelAndDoubleClick(label.text))
+//                }
+//            }
+//            is JBList<*> -> {
+//                if (isPopupList(cmp))
+//                    Writer.writeln(Templates.clickPopupItem(itemName!!))
+//                else if (isFrameworksTree(cmp))
+//                else
+//                    Writer.writeln(Templates.clickListItem(itemName!!))
+//            }
+//            is JList<*> -> {
+//                if (cmp.javaClass.name.contains("BasicComboPopup")) {
+//                    if (openComboBox) {
+//                        Writer.write(Templates.selectComboBox(itemName!!) + "\n")
+//                        openComboBox = false
+//                    } else {
+//                        throw Exception("Unable to find combo box for this BasicComboPopup")
+//                    }
+//                } else {
+//                    throw UnsupportedOperationException("not implemented")
+//                }
+//
+//            }
+//            is CheckboxTree -> Writer.writeln(Templates.clickFrameworksTree(itemName!!))
+//            is SimpleTree -> Writer.writeln(Templates.selectSimpleTreeItem(Util.convertSimpleTreeItemToPath(cmp as SimpleTree, itemName!!)))
+//            is JBCheckBox -> Writer.writeln(Templates.clickJBCheckBox(cmp.text))
+//            is JCheckBox -> Writer.writeln(Templates.clickJCheckBox(cmp.text))
+//            is JComboBox<*> -> {
+//                openComboBox = true
+//                val label = getBoundedLabelForComboBox(cmp)
+//                Writer.write(makeIndent() + Templates.onJComboBox(label.text))
+//            }
+//            is JRadioButton -> {
+//                Writer.writeln(Templates.clickRadioButton(cmp.text))
+//            }
+//            is LinkLabel<*> -> Writer.writeln(Templates.clickLinkLabel(cmp.text))
+//            is EditorComponentImpl -> Writer.writeln(currentContext.editorActivate())
+//            is JTree -> {
+//                Writer.writeln(Templates.selectTreePath(itemName!!))
+////                Writer.writeln(Templates.selectTreePath(cmp.javaClass.name, itemName))
+//            }
+//            else -> if (cmp.inToolWindow()) {
+//                when (cmp.javaClass.toString()) {
+//                    "class com.intellij.ide.projectView.impl.ProjectViewPane$1" -> Writer.writeln(currentContext.toolWindowActivate("Project"))
+//                }
+//            }
+//        }
 
-            }
-            is CheckboxTree -> Writer.writeln(Templates.clickFrameworksTree(itemName!!))
-            is SimpleTree -> Writer.writeln(Templates.selectSimpleTreeItem(Util.convertSimpleTreeItemToPath(cmp as SimpleTree, itemName!!)))
-            is JBCheckBox -> Writer.writeln(Templates.clickJBCheckBox(cmp.text))
-            is JCheckBox -> Writer.writeln(Templates.clickJCheckBox(cmp.text))
-            is JComboBox<*> -> {
-                openComboBox = true
-                val label = getBoundedLabelForComboBox(cmp)
-                Writer.write(makeIndent() + Templates.onJComboBox(label.text))
-            }
-            is JRadioButton -> {
-                Writer.writeln(Templates.clickRadioButton(cmp.text))
-            }
-            is LinkLabel<*> -> Writer.writeln(Templates.clickLinkLabel(cmp.text))
-            is EditorComponentImpl -> Writer.writeln(currentContext.editorActivate())
-            is JTree -> {
-                Writer.writeln(Templates.selectTreePath(itemName!!))
-//                Writer.writeln(Templates.selectTreePath(cmp.javaClass.name, itemName))
-            }
-            else -> if (cmp.inToolWindow()) {
-                when (cmp.javaClass.toString()) {
-                    "class com.intellij.ide.projectView.impl.ProjectViewPane$1" -> Writer.writeln(currentContext.toolWindowActivate("Project"))
-                }
-            }
-        }
     }
 
     private fun isPopupList(cmp: Component) = cmp.javaClass.name.toLowerCase().contains("listpopup")
@@ -264,6 +258,8 @@ object ScriptGenerator {
         currentContext.clear()
     }
 
+    //use it for outer generators
+    fun addToScript(code: String?) {if (code != null) Writer.writeln(code) }
 
 }
 

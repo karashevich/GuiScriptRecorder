@@ -34,6 +34,10 @@
         <!-- Add your extensions here -->
     </extensions>
 
+    <extensionPoints>
+        <extensionPoint name="ComponentCodeGeneratorExt" interface="com.intellij.testGuiFramework.generators.ComponentCodeGenerator" />
+    </extensionPoints>
+
     <actions>
         <action class="actions.StartPauseRecAction" id="gui.recorder.startStopRecAction"
                 description="Start/Stop GUI Recorder" text="Start/Stop GUI Recorder">
