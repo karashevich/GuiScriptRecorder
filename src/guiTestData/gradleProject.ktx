@@ -1,0 +1,16 @@
+welcomeFrame {
+ actionLink("Create New Project").click()
+ projectWizard {
+   jList("Gradle").clickItem("Gradle")
+   selectFramework("Web")
+   button("Next").click()
+   textfield("GroupId").click()
+   typeText("qq")
+   textfield("ArtifactId").click()
+   typeText("ww")
+   button("Next").click()
+   checkbox("Create directories for empty content roots automatically").click()
+   button("Next").click()
+   button("Finish").click()
+  }
+}

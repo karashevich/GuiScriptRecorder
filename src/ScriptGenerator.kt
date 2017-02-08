@@ -1,4 +1,3 @@
-import ScriptGenerator.makeIndent
 import ScriptGenerator.scriptBuffer
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
@@ -8,19 +7,21 @@ import com.intellij.openapi.util.Ref
 import com.intellij.openapi.wm.WindowManager
 import com.intellij.testGuiFramework.fixtures.SettingsTreeFixture
 import com.intellij.testGuiFramework.framework.GuiTestUtil
+import com.intellij.testGuiFramework.generators.ComponentCodeGenerator
+import com.intellij.testGuiFramework.generators.ContextCodeGenerator
+import com.intellij.testGuiFramework.generators.Generators
 import com.intellij.ui.KeyStrokeAdapter
 import com.intellij.ui.treeStructure.SimpleTree
+import com.intellij.util.containers.Stack
 import com.intellij.util.ui.tree.TreeUtil
 import components.GuiRecorderComponent
 import org.fest.swing.core.BasicRobot
 import org.fest.swing.core.GenericTypeMatcher
 import org.fest.swing.exception.ComponentLookupException
 import ui.KeyUtil
-import java.awt.Component
-import java.awt.Container
-import java.awt.Menu
-import java.awt.MenuItem
+import java.awt.*
 import java.awt.event.KeyEvent
+import java.awt.event.MouseEvent
 import javax.swing.*
 import javax.swing.KeyStroke.getKeyStrokeForEvent
 import javax.swing.tree.TreeNode
@@ -33,11 +34,13 @@ object ScriptGenerator {
 
     val scriptBuffer = StringBuilder("")
 
-    var openComboBox = false;
-
+    var openComboBox = false
     fun getScriptBuffer() = scriptBuffer.toString()
-
     fun clearScriptBuffer() = scriptBuffer.setLength(0)
+
+    private val generators : List<ComponentCodeGenerator<*>> = Generators.getGenerators()
+    private val contextGenerators : List<ContextCodeGenerator<*>> = Generators.getContextGenerators()
+    private val contextStack : Stack<ContextCodeGenerator.Context> = Stack(0)
 
     object ScriptWrapper {
 
@@ -72,7 +75,6 @@ object ScriptGenerator {
                 }
     }
 
-    private var currentContext = Contexts()
 
 //    fun actionPerformed(e: com.intellij.openapi.actionSystem.AnActionEvent?) {
 //        get action type for script: click, enter text, mark checkbox
@@ -112,10 +114,62 @@ object ScriptGenerator {
         ScriptGenerator.flushTyping()
 
         Writer.writeln(Templates.invokeActionComment(actionId))
-        makeIndent()
         Writer.writeln(Templates.shortcut(keyStrokeStr))
 
     }
+
+//    clickComponent methods
+    fun clickComponent(component: Component, convertedPoint: Point, me: MouseEvent) {
+        awareListsAndPopups(component) {
+            checkContext(component, me, convertedPoint)
+        }
+
+        val suitableGenerator = generators.filter { generator -> generator.accept(component!!) }.sortedByDescending(ComponentCodeGenerator<*>::priority).firstOrNull() ?: return
+        val code = suitableGenerator.generateCode(component, me, convertedPoint)
+        addToScript(code)
+    }
+
+    private fun checkContext(component: Component?, me: MouseEvent, convertedPoint: Point) {
+        if (component == null) return
+        val applicableContextGenerator = contextGenerators.filter { generator -> generator.accept(component) }.sortedByDescending(ContextCodeGenerator<*>::priority).firstOrNull() ?: return
+        val newContext = applicableContextGenerator.buildContext(component, me, convertedPoint)
+        if (contextStack.isEmpty()) {
+            addToScript(newContext.code)
+            contextStack.push(newContext)
+        } else {
+            //contextStack is not Empty
+            if (newContext.component == contextStack.peek().component) return // context is the same
+            if (contextStack.size > 1 && contextStack[contextStack.size - 2].component == newContext.component) {
+                contextStack.pop()
+                addToScript("}")
+            } else if (contextStack.size > 1 && contextStack[contextStack.size - 2].component != newContext.component) {
+                addToScript(newContext.code)
+                contextStack.push(newContext)
+            } else if (contextStack.size == 1) {
+                val contextComponent = contextStack.peek().component
+                if (contextComponent.isEnabled && contextComponent.isShowing) {
+                    addToScript(newContext.code)
+                    contextStack.push(newContext)
+                } else {
+                    contextStack.pop()
+                    addToScript("}")
+                    addToScript(newContext.code)
+                    contextStack.push(newContext)
+                }
+            }
+        }
+    }
+
+    fun awareListsAndPopups(cmp: Component, body: () -> Unit) {
+        cmp as JComponent
+        if (cmp is JList<*> && openComboBox) return //don't change context for comboBox list
+        if (isPopupList(cmp)) return //dont' change context for a popup menu
+        body()
+    }
+
+    fun clearContext() { contextStack.clear() }
+
+
 
     fun processMainMenuActionEvent(anActionTobePerformed: AnAction, anActionEvent: AnActionEvent) {
         val pathWithSemicolon = Util.getPathFromMainMenu(anActionTobePerformed, anActionEvent)
@@ -125,78 +179,6 @@ object ScriptGenerator {
 
     fun flushTyping() {
         Typer.flushBuffer()
-    }
-
-    fun clickCmp(cmp: Component, itemName: String?, clickCount: Int) {
-
-        Typer.flushBuffer()
-        //check if context has been changed; don't check context for combobox popups
-        awareListsAndPopups(cmp) { currentContext.check(cmp) }
-//        when (cmp) {
-//            is JButton -> Writer.writeln(Templates.findAndClickButton(cmp.text))
-//            is ActionButton -> Writer.writeln(Templates.findAndClickActionButton(ActionManager.getInstance().getId(cmp.action)))
-//            is com.intellij.ui.components.labels.ActionLink -> Writer.writeln(Templates.clickActionLink(cmp.text))
-//            is JTextField -> {
-//                val parentContainer = cmp.rootPane.parent
-//                if (clickCount == 1) {
-//                    val label = getLabel(parentContainer, cmp)
-//                    if (label == null)
-//                        Writer.writeln(Templates.findJTextField())
-//                    else
-//                        Writer.writeln(Templates.findJTextFieldByLabel(label.text))
-//                } else if (clickCount == 2) {
-//                    val label = getLabel(parentContainer, cmp)
-//                    if (label == null)
-//                        Writer.writeln(Templates.findJTextFieldAndDoubleClick())
-//                    else
-//                        Writer.writeln(Templates.findJTextFieldByLabelAndDoubleClick(label.text))
-//                }
-//            }
-//            is JBList<*> -> {
-//                if (isPopupList(cmp))
-//                    Writer.writeln(Templates.clickPopupItem(itemName!!))
-//                else if (isFrameworksTree(cmp))
-//                else
-//                    Writer.writeln(Templates.clickListItem(itemName!!))
-//            }
-//            is JList<*> -> {
-//                if (cmp.javaClass.name.contains("BasicComboPopup")) {
-//                    if (openComboBox) {
-//                        Writer.write(Templates.selectComboBox(itemName!!) + "\n")
-//                        openComboBox = false
-//                    } else {
-//                        throw Exception("Unable to find combo box for this BasicComboPopup")
-//                    }
-//                } else {
-//                    throw UnsupportedOperationException("not implemented")
-//                }
-//
-//            }
-//            is CheckboxTree -> Writer.writeln(Templates.clickFrameworksTree(itemName!!))
-//            is SimpleTree -> Writer.writeln(Templates.selectSimpleTreeItem(Util.convertSimpleTreeItemToPath(cmp as SimpleTree, itemName!!)))
-//            is JBCheckBox -> Writer.writeln(Templates.clickJBCheckBox(cmp.text))
-//            is JCheckBox -> Writer.writeln(Templates.clickJCheckBox(cmp.text))
-//            is JComboBox<*> -> {
-//                openComboBox = true
-//                val label = getBoundedLabelForComboBox(cmp)
-//                Writer.write(makeIndent() + Templates.onJComboBox(label.text))
-//            }
-//            is JRadioButton -> {
-//                Writer.writeln(Templates.clickRadioButton(cmp.text))
-//            }
-//            is LinkLabel<*> -> Writer.writeln(Templates.clickLinkLabel(cmp.text))
-//            is EditorComponentImpl -> Writer.writeln(currentContext.editorActivate())
-//            is JTree -> {
-//                Writer.writeln(Templates.selectTreePath(itemName!!))
-////                Writer.writeln(Templates.selectTreePath(cmp.javaClass.name, itemName))
-//            }
-//            else -> if (cmp.inToolWindow()) {
-//                when (cmp.javaClass.toString()) {
-//                    "class com.intellij.ide.projectView.impl.ProjectViewPane$1" -> Writer.writeln(currentContext.toolWindowActivate("Project"))
-//                }
-//            }
-//        }
-
     }
 
     private fun isPopupList(cmp: Component) = cmp.javaClass.name.toLowerCase().contains("listpopup")
@@ -245,21 +227,15 @@ object ScriptGenerator {
 
     }
 
-    fun awareListsAndPopups(cmp: Component, body: () -> Unit) {
-        cmp as JComponent
-        if (cmp is JList<*> && openComboBox) return //don't change context for comboBox list
-        if (isPopupList(cmp)) return //dont' change context for a popup menu
-        body()
-    }
-
-    fun makeIndent() = currentContext.getIndent()
-
-    fun clearContext() {
-        currentContext.clear()
+    fun addToScript(code: String, withIndent: Boolean = true, indent: Int = 2) {
+        if (withIndent) {
+            val indentedString = (0..(indent * contextStack.size - 1)).map { i -> ' ' }.joinToString(separator = "")
+            ScriptGenerator.addToScriptDelegate("$indentedString$code")
+        } else ScriptGenerator.addToScriptDelegate(code)
     }
 
     //use it for outer generators
-    fun addToScript(code: String?) {if (code != null) Writer.writeln(code) }
+    private fun addToScriptDelegate(code: String?) {if (code != null) Writer.writeln(code) }
 
 }
 
@@ -271,7 +247,7 @@ private fun Any.inToolWindow(): Boolean {
 object Writer {
 
     fun writeln(str: String) {
-        write("${makeIndent()}" + str + "\n")
+        write(str + "\n")
     }
 
     fun write(str: String) {
@@ -311,8 +287,8 @@ private object Typer {
 
     fun flushBuffer() {
         if (strBuffer.length == 0) return
-        Writer.writeln("//typed:[${strBuffer.length},\"${strBuffer.toString()}\", raw=[${rawBuffer.toString()}]]")
-        Writer.writeln(Templates.typeText(strBuffer.toString()))
+        ScriptGenerator.addToScript("//typed:[${strBuffer.length},\"${strBuffer.toString()}\", raw=[${rawBuffer.toString()}]]")
+        ScriptGenerator.addToScript(Templates.typeText(strBuffer.toString()))
         strBuffer.setLength(0)
         rawBuffer.setLength(0)
     }
