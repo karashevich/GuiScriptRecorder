@@ -124,7 +124,7 @@ object ScriptGenerator {
             checkContext(component, me, convertedPoint)
         }
 
-        val suitableGenerator = generators.filter { generator -> generator.accept(component!!) }.sortedByDescending(ComponentCodeGenerator<*>::priority).firstOrNull() ?: return
+        val suitableGenerator = generators.filter { generator -> generator.accept(component) }.sortedByDescending(ComponentCodeGenerator<*>::priority).firstOrNull() ?: return
         val code = suitableGenerator.generateCode(component, me, convertedPoint)
         addToScript(code)
     }
