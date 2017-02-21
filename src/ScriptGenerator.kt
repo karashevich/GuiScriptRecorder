@@ -1,4 +1,5 @@
 import ScriptGenerator.scriptBuffer
+import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.command.WriteCommandAction
@@ -8,11 +9,9 @@ import com.intellij.openapi.wm.WindowManager
 import com.intellij.testGuiFramework.fixtures.SettingsTreeFixture
 import com.intellij.testGuiFramework.framework.GuiTestUtil
 import com.intellij.testGuiFramework.generators.ComponentCodeGenerator
-import com.intellij.testGuiFramework.generators.ContextCodeGenerator
 import com.intellij.testGuiFramework.generators.Generators
 import com.intellij.ui.KeyStrokeAdapter
 import com.intellij.ui.treeStructure.SimpleTree
-import com.intellij.util.containers.Stack
 import com.intellij.util.ui.tree.TreeUtil
 import components.GuiRecorderComponent
 import org.fest.swing.core.BasicRobot
@@ -39,8 +38,6 @@ object ScriptGenerator {
     fun clearScriptBuffer() = scriptBuffer.setLength(0)
 
     private val generators : List<ComponentCodeGenerator<*>> = Generators.getGenerators()
-    private val contextGenerators : List<ContextCodeGenerator<*>> = Generators.getContextGenerators()
-    private val contextStack : Stack<ContextCodeGenerator.Context> = Stack(0)
 
     object ScriptWrapper {
 
@@ -79,7 +76,7 @@ object ScriptGenerator {
 //    fun actionPerformed(e: com.intellij.openapi.actionSystem.AnActionEvent?) {
 //        get action type for script: click, enter text, mark checkbox
 //        val component = e!!.getDataContext().getData("Component") as Component
-//        checkContext(component)
+//        checkGlobalContext(component)
 //        clickCmp(component, e)
 //    }
 
@@ -121,7 +118,9 @@ object ScriptGenerator {
 //    clickComponent methods
     fun clickComponent(component: Component, convertedPoint: Point, me: MouseEvent) {
         awareListsAndPopups(component) {
-            checkContext(component, me, convertedPoint)
+            ContextChecker.checkContext(component, me, convertedPoint)
+//            checkGlobalContext(component, me, convertedPoint)
+//            checkLocalContext(component, me, convertedPoint)
         }
 
         val suitableGenerator = generators.filter { generator -> generator.accept(component) }.sortedByDescending(ComponentCodeGenerator<*>::priority).firstOrNull() ?: return
@@ -129,36 +128,7 @@ object ScriptGenerator {
         addToScript(code)
     }
 
-    private fun checkContext(component: Component?, me: MouseEvent, convertedPoint: Point) {
-        if (component == null) return
-        val applicableContextGenerator = contextGenerators.filter { generator -> generator.accept(component) }.sortedByDescending(ContextCodeGenerator<*>::priority).firstOrNull() ?: return
-        val newContext = applicableContextGenerator.buildContext(component, me, convertedPoint)
-        if (contextStack.isEmpty()) {
-            addToScript(newContext.code)
-            contextStack.push(newContext)
-        } else {
-            //contextStack is not Empty
-            if (newContext.component == contextStack.peek().component) return // context is the same
-            if (contextStack.size > 1 && contextStack[contextStack.size - 2].component == newContext.component) {
-                contextStack.pop()
-                addToScript("}")
-            } else if (contextStack.size > 1 && contextStack[contextStack.size - 2].component != newContext.component) {
-                addToScript(newContext.code)
-                contextStack.push(newContext)
-            } else if (contextStack.size == 1) {
-                val contextComponent = contextStack.peek().component
-                if (contextComponent.isEnabled && contextComponent.isShowing) {
-                    addToScript(newContext.code)
-                    contextStack.push(newContext)
-                } else {
-                    contextStack.pop()
-                    addToScript("}")
-                    addToScript(newContext.code)
-                    contextStack.push(newContext)
-                }
-            }
-        }
-    }
+//
 
     fun awareListsAndPopups(cmp: Component, body: () -> Unit) {
         cmp as JComponent
@@ -167,13 +137,13 @@ object ScriptGenerator {
         body()
     }
 
-    fun clearContext() { contextStack.clear() }
+    fun clearContext() { ContextChecker.clearContext()}
 
 
 
-    fun processMainMenuActionEvent(anActionTobePerformed: AnAction, anActionEvent: AnActionEvent) {
-        val pathWithSemicolon = Util.getPathFromMainMenu(anActionTobePerformed, anActionEvent)
-        if (pathWithSemicolon != null) Writer.writeln(Templates.invokeMainMenuAction(pathWithSemicolon.split(";").toTypedArray()))
+    fun processMainMenuActionEvent(anActionToBePerformed: AnAction, anActionEvent: AnActionEvent) {
+        val actionId = ActionManager.getInstance().getId(anActionToBePerformed)
+        Writer.writeln(Templates.invokeMainMenuAction(actionId))
     }
 
 
@@ -229,7 +199,7 @@ object ScriptGenerator {
 
     fun addToScript(code: String, withIndent: Boolean = true, indent: Int = 2) {
         if (withIndent) {
-            val indentedString = (0..(indent * contextStack.size - 1)).map { i -> ' ' }.joinToString(separator = "")
+            val indentedString = (0..(indent * ContextChecker.getContextDepth() - 1)).map { i -> ' ' }.joinToString(separator = "")
             ScriptGenerator.addToScriptDelegate("$indentedString$code")
         } else ScriptGenerator.addToScriptDelegate(code)
     }
@@ -239,10 +209,6 @@ object ScriptGenerator {
 
 }
 
-private fun Any.inToolWindow(): Boolean {
-    if (this is Component) return true
-    else return false
-}
 
 object Writer {
 

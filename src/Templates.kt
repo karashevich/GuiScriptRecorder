@@ -33,7 +33,7 @@ object Templates {
     fun invokeActionComment(actionId: String) = "//invoke an action \"$actionId\" via keystroke string "
 
     fun shortcut(keyStrokeStr: String) = "shortcut(\"$keyStrokeStr\")"
-    fun invokeMainMenuAction(menuPath: Array<String>) = "invokeMenuPath(${menuPath.joinToString { "\"$it\"" }})"
+    fun invokeMainMenuAction(menuActionId: String) = "invokeMainMenu(\"$menuActionId\")"
 
     fun selectTreePath(path: String) = "jTree(\"$path\").clickPath(\"$path\")"
 //    fun selectTreePath(treeClass: String, path: String) = "//GuiTestUtil.findJTreeFixtureByClassName(robot(), this.target(), \"$treeClass\").clickPath(\"$path\")"
