@@ -9,6 +9,7 @@ import com.intellij.openapi.editor.highlighter.EditorHighlighterFactory
 import com.intellij.openapi.editor.impl.EditorImpl
 import com.intellij.openapi.project.ProjectManager
 import com.intellij.testFramework.LightVirtualFile
+import com.intellij.ui.EditorTextField
 
 /**
  * @author Sergey Karashevich
@@ -24,6 +25,7 @@ class GuiScriptEditor() {
         val editorFactory = EditorFactory.getInstance()
         val editorDocument = editorFactory.createDocument(ScriptGenerator.getScriptBuffer())
         val editor = (editorFactory.createEditor(editorDocument, ProjectManager.getInstance().defaultProject) as EditorEx)
+        EditorTextField.SUPPLEMENTARY_KEY.set(editor, java.lang.Boolean.TRUE)
         editor.colorsScheme = EditorColorsManager.getInstance().globalScheme
         val settings = editor.settings
         settings.isLineNumbersShown = true

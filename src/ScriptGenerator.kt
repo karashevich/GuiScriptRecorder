@@ -37,7 +37,7 @@ object ScriptGenerator {
     fun getScriptBuffer() = scriptBuffer.toString()
     fun clearScriptBuffer() = scriptBuffer.setLength(0)
 
-    private val generators : List<ComponentCodeGenerator<*>> = Generators.getGenerators()
+    private val generators: List<ComponentCodeGenerator<*>> = Generators.getGenerators()
 
     object ScriptWrapper {
 
@@ -110,12 +110,12 @@ object ScriptGenerator {
         if (IgnoredActions.ignore(keyStrokeStr)) return
         ScriptGenerator.flushTyping()
 
-        Writer.writeln(Templates.invokeActionComment(actionId))
-        Writer.writeln(Templates.shortcut(keyStrokeStr))
+        addToScript(Templates.invokeActionComment(actionId))
+        addToScript(Templates.shortcut(keyStrokeStr))
 
     }
 
-//    clickComponent methods
+    //    clickComponent methods
     fun clickComponent(component: Component, convertedPoint: Point, me: MouseEvent) {
         awareListsAndPopups(component) {
             ContextChecker.checkContext(component, me, convertedPoint)
@@ -137,13 +137,15 @@ object ScriptGenerator {
         body()
     }
 
-    fun clearContext() { ContextChecker.clearContext()}
-
+    fun clearContext() {
+        ContextChecker.clearContext()
+    }
 
 
     fun processMainMenuActionEvent(anActionToBePerformed: AnAction, anActionEvent: AnActionEvent) {
-        val actionId = ActionManager.getInstance().getId(anActionToBePerformed)
-        Writer.writeln(Templates.invokeMainMenuAction(actionId))
+        val actionId: String? = ActionManager.getInstance().getId(anActionToBePerformed)
+        if (actionId == null) { addToScript("//called action (${anActionToBePerformed.templatePresentation.text}) from main menu with null actionId"); return }
+        addToScript(Templates.invokeMainMenuAction(actionId))
     }
 
 
@@ -205,7 +207,9 @@ object ScriptGenerator {
     }
 
     //use it for outer generators
-    private fun addToScriptDelegate(code: String?) {if (code != null) Writer.writeln(code) }
+    private fun addToScriptDelegate(code: String?) {
+        if (code != null) Writer.writeln(code)
+    }
 
 }
 
@@ -272,6 +276,11 @@ object IgnoredActions {
 }
 
 object Util {
+
+//    fun isActionFromMainMenu(anActionTobePerformed: AnAction, anActionEvent: AnActionEvent): Boolean {
+//        val menuBar = WindowManager.getInstance().findVisibleFrame().menuBar ?: return false
+//    }
+
     fun getPathFromMainMenu(anActionTobePerformed: AnAction, anActionEvent: AnActionEvent): String? {
 //        WindowManager.getInstance().findVisibleFrame().menuBar.getMenu(0).label
         val menuBar = WindowManager.getInstance().findVisibleFrame().menuBar ?: return null
@@ -310,7 +319,7 @@ object Util {
         searchableNode = searchableNodeRef.get()
         val path = TreeUtil.getPathFromRoot(searchableNode!!)
 
-        return (0..path.pathCount-1).map { path.getPathComponent(it).toString() }.filter(String::isNotEmpty).joinToString("/")
+        return (0..path.pathCount - 1).map { path.getPathComponent(it).toString() }.filter(String::isNotEmpty).joinToString("/")
     }
 
     fun getJTreePath(cmp: JTree, path: TreePath): String {

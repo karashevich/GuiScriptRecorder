@@ -9,8 +9,8 @@ import java.awt.KeyboardFocusManager
 import java.awt.Point
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
-import java.awt.event.MouseEvent.BUTTON1
 import java.awt.event.MouseEvent.MOUSE_PRESSED
+import java.util.*
 import javax.swing.JFrame
 import javax.swing.KeyStroke
 import javax.swing.RootPaneContainer
@@ -21,11 +21,13 @@ import javax.swing.SwingUtilities
  */
 object EventDispatcher {
 
+    val mainActions by lazy { (ActionManager.getInstance().getAction(IdeActions.GROUP_MAIN_MENU) as ActionGroup).getFlatIdList()}
+
     val LOG = Logger.getInstance(EventDispatcher::class.java)
     fun processMouseEvent(me: MouseEvent) {
 
 //        if (!(me.clickCount == 1 && me.id == MOUSE_CLICKED && me.button == BUTTON1)) return
-        if (!(me.id == MOUSE_PRESSED && me.button == BUTTON1)) return
+        if (!(me.id == MOUSE_PRESSED)) return
 
         ScriptGenerator.flushTyping()
 
@@ -77,8 +79,16 @@ object EventDispatcher {
     }
 
     fun  processActionEvent(anActionTobePerformed: AnAction, anActionEvent: AnActionEvent?) {
+        val actMgr = ActionManager.getInstance()
         if (anActionEvent!!.inputEvent is KeyEvent) ScriptGenerator.processKeyActionEvent(anActionTobePerformed, anActionEvent)
-        if (anActionEvent.place == ActionPlaces.MAIN_MENU) ScriptGenerator.processMainMenuActionEvent(anActionTobePerformed, anActionEvent)
+        if (mainActions.contains(actMgr.getId(anActionTobePerformed))) ScriptGenerator.processMainMenuActionEvent(anActionTobePerformed, anActionEvent)
     }
 
+
+    private fun ActionGroup.getFlatIdList(): List<String> {
+        val actMgr = ActionManager.getInstance()
+        val result = ArrayList<String>()
+        this.getChildren(null).forEach { anAction -> if (anAction is ActionGroup) result.addAll(anAction.getFlatIdList()) else result.add(actMgr.getId(anAction)) }
+        return result
+    }
 }

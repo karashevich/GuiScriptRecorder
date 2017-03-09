@@ -8,6 +8,7 @@ import org.fest.util.Preconditions
 import java.awt.Component
 import java.awt.MouseInfo
 import java.awt.Point
+import javax.swing.SwingUtilities
 
 /**
  * @author Sergey Karashevich
@@ -18,7 +19,7 @@ class SmartWaitRobot() : BasicRobot(null, ExistingHierarchy()) {
 
     override fun waitForIdle() {
         Pause.pause(waitConst)
-        EdtInvocationManager.getInstance().invokeAndWait({  })
+        if(!SwingUtilities.isEventDispatchThread()) EdtInvocationManager.getInstance().invokeAndWait({  })
     }
 
     //smooth mouse move

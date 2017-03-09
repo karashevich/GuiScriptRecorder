@@ -2,7 +2,6 @@ package ui;
 
 import actions.*;
 import com.intellij.openapi.actionSystem.ActionManager;
-import com.intellij.openapi.actionSystem.ActionPlaces;
 import com.intellij.openapi.actionSystem.ActionToolbar;
 import com.intellij.openapi.actionSystem.DefaultActionGroup;
 import com.intellij.openapi.editor.Editor;
@@ -25,6 +24,8 @@ public class GuiScriptEditorPanel {
     private JPanel myStatusBarPanel;
     private AsyncProcessIcon progressIcon;
     private JPanel iconButtonRow;
+
+    public static final String GUI_SCRIPT_EDITOR_PLACE = "GUI_SCRIPT_EDITOR_PLACE";
 
     private GuiScriptEditor myEditor;
 
@@ -60,7 +61,7 @@ public class GuiScriptEditorPanel {
         group.add(new UpdateEditorAction());
         group.add(new PerformScriptAction());
         group.add(new SyncEditorAction());
-        final ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, group, true);
+        final ActionToolbar toolbar = ActionManager.getInstance().createActionToolbar(GUI_SCRIPT_EDITOR_PLACE, group, true);
 
         iconButtonRow.add(toolbar.getComponent(), BorderLayout.CENTER);
     }

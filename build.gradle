@@ -85,6 +85,7 @@ dependencies {
 }
 
 
+
 task testGuiTest(type: Test) {
     testClassesDir = sourceSets.guiTest.output.classesDir
     classpath = sourceSets.guiTest.runtimeClasspath

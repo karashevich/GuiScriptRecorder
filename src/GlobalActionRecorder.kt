@@ -6,7 +6,7 @@ import com.intellij.openapi.actionSystem.DataContext
 import com.intellij.openapi.actionSystem.ex.AnActionListener
 import com.intellij.openapi.diagnostic.Logger
 import components.GuiRecorderComponent
-import java.awt.AWTEvent
+import ui.GuiScriptEditorPanel
 import java.awt.event.KeyEvent
 import java.awt.event.MouseEvent
 
@@ -25,6 +25,7 @@ object GlobalActionRecorder {
 
     private val globalActionListener = object : AnActionListener {
         override fun beforeActionPerformed(anActionToBePerformed: AnAction?, p1: DataContext?, anActionEvent: AnActionEvent?) {
+            if (anActionEvent?.place == GuiScriptEditorPanel.GUI_SCRIPT_EDITOR_PLACE) return //avoid GUI Script Editor Actions
             EventDispatcher.processActionEvent(anActionToBePerformed!!, anActionEvent)
             LOG.info("IDEA is going to perform action ${anActionToBePerformed.templatePresentation.text}")
         }
@@ -34,19 +35,17 @@ object GlobalActionRecorder {
         }
 
         override fun afterActionPerformed(p0: AnAction?, p1: DataContext?, p2: AnActionEvent?) {
+            if (p2?.place == GuiScriptEditorPanel.GUI_SCRIPT_EDITOR_PLACE) return //avoid GUI Script Editor Actions
             LOG.info("IDEA action performed ${p0!!.templatePresentation.text}")
         }
     }
 
-    private val globalAwtProcessor = object : IdeEventQueue.EventDispatcher {
-
-        override fun dispatch(awtEvent: AWTEvent): Boolean {
-            when (awtEvent) {
-                is MouseEvent -> EventDispatcher.processMouseEvent(awtEvent)
-                is KeyEvent -> EventDispatcher.processKeyBoardEvent(awtEvent)
-            }
-            return false
+    private val globalAwtProcessor = IdeEventQueue.EventDispatcher { awtEvent ->
+        when (awtEvent) {
+            is MouseEvent -> EventDispatcher.processMouseEvent(awtEvent)
+            is KeyEvent -> EventDispatcher.processKeyBoardEvent(awtEvent)
         }
+        false
     }
 
     fun activate() {

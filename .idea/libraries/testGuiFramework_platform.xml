@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="testGuiFramework-platform">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/testGuiFramework-platform.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
