@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="KotlinRuntime">
+    <CLASSES>
+      <root url="jar://$APPLICATION_PLUGINS_DIR$/Kotlin/lib/kotlin-daemon-client.jar!/" />
+      <root url="jar://$APPLICATION_PLUGINS_DIR$/Kotlin/lib/kotlin-plugin.jar!/" />
+      <root url="jar://$APPLICATION_PLUGINS_DIR$/Kotlin/lib/kotlin-reflect.jar!/" />
+      <root url="jar://$APPLICATION_PLUGINS_DIR$/Kotlin/lib/kotlin-runtime.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$APPLICATION_PLUGINS_DIR$/Kotlin/lib/kotlin-plugin.jar!/" />
+    </SOURCES>
+  </library>
+</component>
